@@ -140,7 +140,7 @@ def main():
 
     window.expose(minimize, toggle_maximize, close, is_maximized)
 
-    webview.start(debug=True)
+    webview.start()
 
 
 if __name__ == "__main__":
