@@ -108,3 +108,4 @@ python build.py
 - vue-router ^5.0.4
 - axios ^1.15.0
 - vite ^8.0.3
+- vuedraggable ^4.1.0

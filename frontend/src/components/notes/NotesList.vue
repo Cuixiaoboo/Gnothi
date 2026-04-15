@@ -13,18 +13,41 @@
       />
     </div>
     <div class="notes-items">
-      <div
-        v-for="note in notes"
-        :key="note.id"
-        class="note-card"
-        :class="{ active: selectedId === note.id }"
-        @click="$emit('select', note.id)"
+      <draggable
+        :list="localNotes"
+        item-key="id"
+        handle=".drag-handle"
+        ghost-class="ghost"
+        animation="200"
+        @end="onDragEnd"
       >
-        <div class="note-card-title">{{ note.title || '无标题' }}</div>
-        <div class="note-card-preview">{{ (note.content || '').slice(0, 60) || '空笔记' }}</div>
-        <div class="note-card-date">{{ formatDate(note.updated_at) }}</div>
-      </div>
-      <div class="empty" v-if="notes.length === 0" style="padding: 30px 10px">
+        <template #item="{ element }">
+          <div
+            class="note-card"
+            :class="{ active: selectedId === element.id }"
+            @click="$emit('select', element.id)"
+          >
+            <div class="drag-handle" @click.stop>
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                <circle cx="9" cy="6" r="1.5" />
+                <circle cx="15" cy="6" r="1.5" />
+                <circle cx="9" cy="12" r="1.5" />
+                <circle cx="15" cy="12" r="1.5" />
+                <circle cx="9" cy="18" r="1.5" />
+                <circle cx="15" cy="18" r="1.5" />
+              </svg>
+            </div>
+            <div class="note-card-body">
+              <div class="note-card-title">{{ element.title || '无标题' }}</div>
+              <div class="note-card-preview">
+                {{ (element.content || '').slice(0, 60) || '空笔记' }}
+              </div>
+              <div class="note-card-date">{{ formatDate(element.updated_at) }}</div>
+            </div>
+          </div>
+        </template>
+      </draggable>
+      <div class="empty" v-if="localNotes.length === 0" style="padding: 30px 10px">
         <p>{{ search ? '没有匹配的笔记' : '点击「新建笔记」开始' }}</p>
       </div>
     </div>
@@ -32,17 +55,40 @@
 </template>
 
 <script setup>
-defineProps({
+import { ref, watch } from 'vue'
+import draggable from 'vuedraggable'
+
+const props = defineProps({
   notes: Array,
   selectedId: Number,
   search: String,
 })
-defineEmits(['select', 'search'])
+
+const emit = defineEmits(['select', 'search', 'reorder'])
+
+// 创建本地副本供 draggable 的 :list 绑定
+const localNotes = ref([...props.notes])
+
+watch(
+  () => props.notes,
+  (val) => {
+    localNotes.value = [...val]
+  },
+  { deep: true },
+)
 
 function formatDate(isoStr) {
   if (!isoStr) return ''
   const d = new Date(isoStr)
   return `${d.getMonth() + 1}月${d.getDate()}日 ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
+
+function onDragEnd() {
+  // 拖拽完成，把新顺序的 id 数组交给父组件
+  emit(
+    'reorder',
+    localNotes.value.map((n) => n.id),
+  )
 }
 </script>
 
@@ -87,6 +133,9 @@ function formatDate(isoStr) {
   border: 1px solid transparent;
   cursor: pointer;
   transition: all 0.15s;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
 }
 
 .note-card:hover {
@@ -96,6 +145,33 @@ function formatDate(isoStr) {
 .note-card.active {
   background: var(--bg-active);
   border-color: var(--border-light);
+}
+
+/* 拖拽手柄 */
+.drag-handle {
+  flex-shrink: 0;
+  cursor: grab;
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity 0.2s;
+  padding: 2px 0;
+}
+
+.note-card:hover .drag-handle {
+  opacity: 0.6;
+}
+
+.drag-handle:hover {
+  opacity: 1 !important;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.note-card-body {
+  flex: 1;
+  min-width: 0;
 }
 
 .note-card-title {
@@ -120,6 +196,13 @@ function formatDate(isoStr) {
   color: var(--text-muted);
   margin-top: 4px;
   font-family: var(--mono);
+}
+
+/* 拖拽占位符 */
+.ghost {
+  opacity: 0.4;
+  background: var(--bg-active);
+  border: 1px dashed var(--border-light);
 }
 
 @media (max-width: 768px) {
