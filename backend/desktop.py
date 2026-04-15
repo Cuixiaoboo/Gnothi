@@ -89,6 +89,9 @@ def create_desktop_app():
 
 
 def start_flask(app):
+    import logging
+    log = logging.getLogger('werkzeug')
+    log.setLevel(logging.ERROR)
     app.run(host="127.0.0.1", port=5173, debug=False, use_reloader=False)
 
 
@@ -109,6 +112,7 @@ def main():
         min_size=(800, 600),
         frameless=True,
         easy_drag=False,
+        shadow=True,
     )
 
     is_max = [False]
