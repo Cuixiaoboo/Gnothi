@@ -7,7 +7,6 @@
         @input="$emit('update', 'title', $event.target.value)"
         placeholder="笔记标题..."
       />
-      <!-- 搜索框移到这里 -->
       <div class="header-search" v-if="showSearch">
         <input
           ref="searchInput"
@@ -97,12 +96,13 @@
 
     <!-- 编辑区 -->
     <div class="note-editor-body">
-      <div
-        class="backdrop"
+      <pre
         ref="backdrop"
+        class="backdrop"
+        aria-hidden="true"
         v-if="keyword && matchCount > 0"
-        v-html="highlightedContent"
-      ></div>
+      ><template v-for="(line, li) in highlightedLines" :key="li"><template v-if="li > 0">
+</template><template v-for="(seg, si) in line" :key="si"><span v-if="seg.type === 'match'" class="match">{{ seg.text }}</span><span v-else-if="seg.type === 'current'" class="current">{{ seg.text }}</span><template v-else>{{ seg.text }}</template></template></template></pre>
       <textarea
         ref="textarea"
         :value="note.content"
@@ -162,62 +162,75 @@ watch(keyword, () => {
   currentMatchIndex.value = 0
 })
 
-const highlightedContent = computed(() => {
-  if (!keyword.value || !props.note?.content) return ''
+const highlightedLines = computed(() => {
+  if (!keyword.value || !props.note?.content) return []
   const text = props.note.content
   const kw = keyword.value
   const kwLen = kw.length
   const m = matches.value
-  if (m.length === 0) return escapeHtml(text)
+  if (m.length === 0) return [[{ text, type: 'plain' }]]
 
-  let html = ''
+  const rawSegments = []
   let lastEnd = 0
   for (let i = 0; i < m.length; i++) {
     const start = m[i]
-    html += escapeHtml(text.slice(lastEnd, start))
-    const isCurrent = i === currentMatchIndex.value
-    html += `<mark class="${isCurrent ? 'current-match' : 'match'}">${escapeHtml(text.slice(start, start + kwLen))}</mark>`
+    if (start > lastEnd) {
+      rawSegments.push({ text: text.slice(lastEnd, start), type: 'plain' })
+    }
+    rawSegments.push({
+      text: text.slice(start, start + kwLen),
+      type: i === currentMatchIndex.value ? 'current' : 'match',
+    })
     lastEnd = start + kwLen
   }
-  html += escapeHtml(text.slice(lastEnd))
-  if (text.endsWith('\n')) html += '\n '
-  return html
+  if (lastEnd < text.length) {
+    rawSegments.push({ text: text.slice(lastEnd), type: 'plain' })
+  }
+
+  const lines = [[]]
+  for (const seg of rawSegments) {
+    const parts = seg.text.split('\n')
+    for (let i = 0; i < parts.length; i++) {
+      if (i > 0) lines.push([])
+      if (parts[i]) {
+        lines[lines.length - 1].push({ text: parts[i], type: seg.type })
+      }
+    }
+  }
+  return lines
 })
 
-function escapeHtml(str) {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;')
-    .replace(/\n/g, '<br>')
-}
 
 function syncScroll() {
-  if (backdrop.value && textarea.value) {
-    backdrop.value.scrollTop = textarea.value.scrollTop
-    backdrop.value.scrollLeft = textarea.value.scrollLeft
-  }
+  if (!textarea.value || !backdrop.value) return
+  backdrop.value.scrollTop = textarea.value.scrollTop
+  backdrop.value.scrollLeft = textarea.value.scrollLeft
 }
 
 function navigateNext() {
   if (!matchCount.value) return
   currentMatchIndex.value = (currentMatchIndex.value + 1) % matchCount.value
-  scrollToCurrentMatch()
+  scrollToCurrent()
 }
 
 function navigatePrev() {
   if (!matchCount.value) return
   currentMatchIndex.value = (currentMatchIndex.value - 1 + matchCount.value) % matchCount.value
-  scrollToCurrentMatch()
+  scrollToCurrent()
 }
 
-function scrollToCurrentMatch() {
+function scrollToCurrent() {
   nextTick(() => {
-    const marks = backdrop.value?.querySelectorAll('.current-match')
-    if (marks?.[0]) {
-      marks[0].scrollIntoView({ block: 'center', behavior: 'smooth' })
+    if (!backdrop.value || !textarea.value) return
+    const el = backdrop.value.querySelector('.current')
+    if (el) {
+      const viewH = textarea.value.clientHeight
+      const elTop =
+        el.getBoundingClientRect().top -
+        backdrop.value.getBoundingClientRect().top +
+        backdrop.value.scrollTop
+      textarea.value.scrollTop = elTop - viewH / 2 + el.offsetHeight / 2
+      syncScroll()
     }
   })
 }
@@ -289,7 +302,7 @@ function formatDate(isoStr) {
   color: var(--text-muted);
 }
 
-/* ---- Header 内嵌搜索框 ---- */
+/* ---- Header 搜索框 ---- */
 .header-search {
   display: flex;
   align-items: center;
@@ -313,7 +326,7 @@ function formatDate(isoStr) {
 }
 
 .header-search-field {
-  width: 160px;
+  width: 140px;
   font-size: 13px;
   border: none;
   background: transparent;
@@ -343,28 +356,22 @@ function formatDate(isoStr) {
 .backdrop {
   position: absolute;
   inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+  margin: 0;
   padding: 16px;
+  border: none;
+  font-family: inherit;
   font-size: 14px;
   line-height: 1.8;
   white-space: pre-wrap;
   word-wrap: break-word;
-  overflow: auto;
-  color: transparent;
-  pointer-events: none;
-  z-index: 1;
-}
-
-.backdrop :deep(.match) {
-  background: rgba(255, 213, 0, 0.3);
-  color: transparent;
-  border-radius: 2px;
-}
-
-.backdrop :deep(.current-match) {
-  background: rgba(255, 170, 0, 0.6);
-  color: transparent;
-  border-radius: 2px;
-  outline: 1px solid rgba(255, 170, 0, 0.9);
+  overflow-wrap: break-word;
+  tab-size: 4;
+  box-sizing: border-box;
+  scrollbar-gutter: stable;
+  color: var(--text);
 }
 
 .note-editor-body textarea {
@@ -374,20 +381,31 @@ function formatDate(isoStr) {
   height: 100%;
   border: none;
   background: transparent;
-  color: var(--text);
+  caret-color: var(--text);
   padding: 16px;
   resize: none;
   outline: none;
-  line-height: 1.8;
-  font-size: 14px;
   font-family: inherit;
+  font-size: 14px;
+  line-height: 1.8;
   white-space: pre-wrap;
   word-wrap: break-word;
+  overflow-wrap: break-word;
+  tab-size: 4;
+  box-sizing: border-box;
+  scrollbar-gutter: stable;
 }
 
-.note-editor-body:has(.backdrop) textarea {
-  /* color: transparent; */
-  caret-color: var(--text);
+/* 高亮样式 */
+.match {
+  background: rgba(255, 213, 0, 0.35);
+  border-radius: 2px;
+}
+
+.current {
+  background: rgba(255, 170, 0, 0.7);
+  border-radius: 2px;
+  outline: 1px solid rgba(255, 170, 0, 0.9);
 }
 
 /* ---- Footer ---- */
@@ -432,7 +450,6 @@ function formatDate(isoStr) {
 
 .btn-icon.xs {
   padding: 3px;
-  border-radius: var(--radius);
 }
 
 .btn-icon.xs:hover:not(:disabled) {
