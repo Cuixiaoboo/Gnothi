@@ -7,6 +7,77 @@
         @input="$emit('update', 'title', $event.target.value)"
         placeholder="笔记标题..."
       />
+      <!-- 搜索框移到这里 -->
+      <div class="header-search" v-if="showSearch">
+        <input
+          ref="searchInput"
+          v-model="keyword"
+          type="text"
+          placeholder="搜索..."
+          class="header-search-field"
+          @keydown.enter.prevent="navigateNext"
+          @keydown.shift.enter.prevent="navigatePrev"
+          @keydown.esc="closeSearch"
+        />
+        <span class="match-count" v-if="keyword">
+          {{ matchCount > 0 ? `${currentMatchIndex + 1}/${matchCount}` : '无' }}
+        </span>
+        <button class="btn-icon xs" @click="navigatePrev" :disabled="!matchCount" title="上一个">
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <polyline points="18 15 12 9 6 15" />
+          </svg>
+        </button>
+        <button class="btn-icon xs" @click="navigateNext" :disabled="!matchCount" title="下一个">
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+        <button class="btn-icon xs" @click="closeSearch" title="关闭">
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+      <button
+        class="btn-icon"
+        :class="{ active: showSearch }"
+        @click="toggleSearch"
+        title="查找 (Ctrl+F)"
+      >
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <circle cx="11" cy="11" r="8" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
+      </button>
       <button class="btn-icon danger" @click="$emit('delete', note.id)" title="删除笔记">
         <svg
           width="16"
@@ -23,18 +94,32 @@
         </svg>
       </button>
     </div>
+
+    <!-- 编辑区 -->
     <div class="note-editor-body">
+      <div
+        class="backdrop"
+        ref="backdrop"
+        v-if="keyword && matchCount > 0"
+        v-html="highlightedContent"
+      ></div>
       <textarea
+        ref="textarea"
         :value="note.content"
-        @input="$emit('update', 'content', $event.target.value)"
+        @input="onInput"
+        @scroll="syncScroll"
+        @keydown.ctrl.f.prevent="toggleSearch"
         placeholder="开始编写笔记..."
       ></textarea>
     </div>
+
     <div class="note-editor-footer">
       <span>{{ (note.content || '').length }} 字</span>
+      <span v-if="keyword && matchCount > 0">找到 {{ matchCount }} 处匹配</span>
       <span>{{ formatDate(note.updated_at) }}</span>
     </div>
   </div>
+
   <div class="note-editor empty-state" v-else>
     <div class="empty">
       <div class="empty-icon">📝</div>
@@ -44,8 +129,117 @@
 </template>
 
 <script setup>
-defineProps({ note: Object })
-defineEmits(['update', 'delete'])
+import { ref, computed, watch, nextTick } from 'vue'
+
+const props = defineProps({ note: Object })
+const emit = defineEmits(['update', 'delete'])
+
+const showSearch = ref(false)
+const keyword = ref('')
+const caseSensitive = ref(false)
+const currentMatchIndex = ref(0)
+const searchInput = ref(null)
+const textarea = ref(null)
+const backdrop = ref(null)
+
+const matches = computed(() => {
+  if (!keyword.value || !props.note?.content) return []
+  const text = props.note.content
+  const kw = caseSensitive.value ? keyword.value : keyword.value.toLowerCase()
+  const src = caseSensitive.value ? text : text.toLowerCase()
+  const result = []
+  let pos = 0
+  while ((pos = src.indexOf(kw, pos)) !== -1) {
+    result.push(pos)
+    pos += 1
+  }
+  return result
+})
+
+const matchCount = computed(() => matches.value.length)
+
+watch(keyword, () => {
+  currentMatchIndex.value = 0
+})
+
+const highlightedContent = computed(() => {
+  if (!keyword.value || !props.note?.content) return ''
+  const text = props.note.content
+  const kw = keyword.value
+  const kwLen = kw.length
+  const m = matches.value
+  if (m.length === 0) return escapeHtml(text)
+
+  let html = ''
+  let lastEnd = 0
+  for (let i = 0; i < m.length; i++) {
+    const start = m[i]
+    html += escapeHtml(text.slice(lastEnd, start))
+    const isCurrent = i === currentMatchIndex.value
+    html += `<mark class="${isCurrent ? 'current-match' : 'match'}">${escapeHtml(text.slice(start, start + kwLen))}</mark>`
+    lastEnd = start + kwLen
+  }
+  html += escapeHtml(text.slice(lastEnd))
+  if (text.endsWith('\n')) html += '\n '
+  return html
+})
+
+function escapeHtml(str) {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+    .replace(/\n/g, '<br>')
+}
+
+function syncScroll() {
+  if (backdrop.value && textarea.value) {
+    backdrop.value.scrollTop = textarea.value.scrollTop
+    backdrop.value.scrollLeft = textarea.value.scrollLeft
+  }
+}
+
+function navigateNext() {
+  if (!matchCount.value) return
+  currentMatchIndex.value = (currentMatchIndex.value + 1) % matchCount.value
+  scrollToCurrentMatch()
+}
+
+function navigatePrev() {
+  if (!matchCount.value) return
+  currentMatchIndex.value = (currentMatchIndex.value - 1 + matchCount.value) % matchCount.value
+  scrollToCurrentMatch()
+}
+
+function scrollToCurrentMatch() {
+  nextTick(() => {
+    const marks = backdrop.value?.querySelectorAll('.current-match')
+    if (marks?.[0]) {
+      marks[0].scrollIntoView({ block: 'center', behavior: 'smooth' })
+    }
+  })
+}
+
+function toggleSearch() {
+  showSearch.value = !showSearch.value
+  if (showSearch.value) {
+    nextTick(() => searchInput.value?.focus())
+  } else {
+    keyword.value = ''
+  }
+}
+
+function closeSearch() {
+  showSearch.value = false
+  keyword.value = ''
+  textarea.value?.focus()
+}
+
+function onInput(e) {
+  emit('update', 'content', e.target.value)
+}
 
 function formatDate(isoStr) {
   if (!isoStr) return ''
@@ -70,15 +264,16 @@ function formatDate(isoStr) {
   justify-content: center;
 }
 
+/* ---- Header ---- */
 .note-editor-header {
   padding: 14px 16px;
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
-.note-editor-header input {
+.note-editor-header > input[type='text'] {
   flex: 1;
   font-size: 18px;
   font-weight: 700;
@@ -87,17 +282,94 @@ function formatDate(isoStr) {
   color: var(--text);
   padding: 0;
   outline: none;
+  min-width: 0;
 }
 
-.note-editor-header input::placeholder {
+.note-editor-header > input[type='text']::placeholder {
   color: var(--text-muted);
 }
 
+/* ---- Header 内嵌搜索框 ---- */
+.header-search {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1px 6px;
+  animation: slideIn 0.15s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.header-search-field {
+  width: 160px;
+  font-size: 13px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  outline: none;
+  padding: 4px 0;
+}
+
+.header-search-field::placeholder {
+  color: var(--text-muted);
+}
+
+.match-count {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  padding: 0 2px;
+}
+
+/* ---- 编辑区 ---- */
 .note-editor-body {
   flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.backdrop {
+  position: absolute;
+  inset: 0;
+  padding: 16px;
+  font-size: 14px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow: auto;
+  color: transparent;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.backdrop :deep(.match) {
+  background: rgba(255, 213, 0, 0.3);
+  color: transparent;
+  border-radius: 2px;
+}
+
+.backdrop :deep(.current-match) {
+  background: rgba(255, 170, 0, 0.6);
+  color: transparent;
+  border-radius: 2px;
+  outline: 1px solid rgba(255, 170, 0, 0.9);
 }
 
 .note-editor-body textarea {
+  position: relative;
+  z-index: 2;
   width: 100%;
   height: 100%;
   border: none;
@@ -108,8 +380,17 @@ function formatDate(isoStr) {
   outline: none;
   line-height: 1.8;
   font-size: 14px;
+  font-family: inherit;
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }
 
+.note-editor-body:has(.backdrop) textarea {
+  /* color: transparent; */
+  caret-color: var(--text);
+}
+
+/* ---- Footer ---- */
 .note-editor-footer {
   padding: 8px 16px;
   border-top: 1px solid var(--border);
@@ -117,5 +398,50 @@ function formatDate(isoStr) {
   color: var(--text-muted);
   display: flex;
   justify-content: space-between;
+}
+
+/* ---- 按钮通用 ---- */
+.btn-icon {
+  padding: 6px;
+  border-radius: var(--radius);
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.btn-icon:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.btn-icon.active {
+  background: var(--bg-active);
+  color: var(--accent);
+}
+
+.btn-icon.danger:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.btn-icon.xs {
+  padding: 3px;
+  border-radius: var(--radius);
+}
+
+.btn-icon.xs:hover:not(:disabled) {
+  background: var(--bg-active);
+  color: var(--text);
+}
+
+.btn-icon.xs:disabled {
+  opacity: 0.3;
+  cursor: default;
 }
 </style>
