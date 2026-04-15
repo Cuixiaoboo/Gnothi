@@ -67,11 +67,14 @@
           <tr v-for="(row, ri) in rows" :key="ri">
             <td class="row-num">{{ ri + 1 }}</td>
             <td v-for="col in columns" :key="col.key">
-              <input
-                :value="row[col.key] || ''"
-                @input="$emit('cellInput', ri, col.key, $event.target.value)"
-                @keydown.enter="$event.target.blur()"
-              />
+              <div
+                class="cell-editable"
+                contenteditable="true"
+                @blur="$emit('cellInput', ri, col.key, $event.target.innerText)"
+                @keydown.enter.prevent="$event.target.blur()"
+              >
+                {{ row[col.key] || '' }}
+              </div>
             </td>
             <td class="row-delete">
               <button class="btn-icon danger" @click="$emit('removeRow', ri)" title="删除行">
@@ -179,6 +182,7 @@ defineEmits([
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
+  table-layout: fixed;
 }
 
 .report-table th {
@@ -241,21 +245,6 @@ defineEmits([
   border-bottom: 1px solid var(--border);
 }
 
-.report-table td input {
-  width: 100%;
-  border: none;
-  background: transparent;
-  padding: 8px 12px;
-  color: var(--text);
-  outline: none;
-  border-radius: 0;
-}
-
-.report-table td input:focus {
-  background: var(--bg-hover);
-  box-shadow: inset 0 0 0 2px var(--accent);
-}
-
 .report-table tr:hover {
   background: rgba(255, 255, 255, 0.02);
 }
@@ -305,5 +294,27 @@ defineEmits([
   background: var(--red);
   color: #fff;
   border-color: var(--red);
+}
+
+.cell-editable {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 8px 12px;
+  color: var(--text);
+  outline: none;
+  border-radius: 0;
+  min-height: 36px;
+  line-height: 1.5;
+  font: inherit;
+  font-size: 13px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  cursor: text;
+}
+
+.cell-editable:focus {
+  background: var(--bg-hover);
+  box-shadow: inset 0 0 0 2px var(--accent);
 }
 </style>
