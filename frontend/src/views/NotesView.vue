@@ -25,6 +25,7 @@
           :search="search"
           @select="selectedId = $event"
           @search="search = $event"
+          @reorder="handleReorder"
         />
         <NoteEditor :note="currentNote" @update="updateField" @delete="deleteNote" />
       </div>
@@ -92,7 +93,6 @@ async function updateField(field, value) {
 async function deleteNote(id) {
   const ok = await showConfirm('确定删除此笔记吗？')
   if (!ok) return
-  // if (!confirm('确定删除此笔记？')) return
   try {
     await noteApi.delete(id)
     notes.value = notes.value.filter((n) => n.id !== id)
@@ -102,6 +102,20 @@ async function deleteNote(id) {
     showToast('已删除')
   } catch {
     showToast('删除失败', 'error')
+  }
+}
+
+// 拖拽排序完成
+async function handleReorder(orderedIds) {
+  // 1. 本地立即按新顺序排列
+  const idMap = new Map(notes.value.map((n) => [n.id, n]))
+  notes.value = orderedIds.map((id) => idMap.get(id)).filter(Boolean)
+
+  // 2. 持久化到后端（如果你的 API 支持批量排序）
+  try {
+    await noteApi.reorder(orderedIds)
+  } catch {
+    showToast('排序保存失败', 'error')
   }
 }
 

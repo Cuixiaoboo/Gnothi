@@ -28,4 +28,5 @@ export const noteApi = {
   create: (data) => http.post('/notes', data),
   update: (id, data) => http.put(`/notes/${id}`, data),
   delete: (id) => http.delete(`/notes/${id}`),
+  reorder: (ids) => axios.put('/api/notes/reorder', { ids }),
 }

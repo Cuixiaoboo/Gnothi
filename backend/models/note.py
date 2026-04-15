@@ -10,6 +10,7 @@ class Note(db.Model):
     content = db.Column(db.Text, default="")
     created_at = db.Column(db.DateTime)
     updated_at = db.Column(db.DateTime)
+    sort_order = db.Column(db.Integer, default=0)
 
     def to_dict(self):
         return {
@@ -18,4 +19,5 @@ class Note(db.Model):
             "content": self.content,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            "sort_order": self.sort_order,
         }
