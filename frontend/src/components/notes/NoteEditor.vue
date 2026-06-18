@@ -7,76 +7,6 @@
         @input="$emit('update', 'title', $event.target.value)"
         placeholder="笔记标题..."
       />
-      <div class="header-search" v-if="showSearch">
-        <input
-          ref="searchInput"
-          v-model="keyword"
-          type="text"
-          placeholder="搜索..."
-          class="header-search-field"
-          @keydown.enter.prevent="navigateNext"
-          @keydown.shift.enter.prevent="navigatePrev"
-          @keydown.esc="closeSearch"
-        />
-        <span class="match-count" v-if="keyword">
-          {{ matchCount > 0 ? `${currentMatchIndex + 1}/${matchCount}` : '无' }}
-        </span>
-        <button class="btn-icon xs" @click="navigatePrev" :disabled="!matchCount" title="上一个">
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <polyline points="18 15 12 9 6 15" />
-          </svg>
-        </button>
-        <button class="btn-icon xs" @click="navigateNext" :disabled="!matchCount" title="下一个">
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
-        </button>
-        <button class="btn-icon xs" @click="closeSearch" title="关闭">
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-        </button>
-      </div>
-      <button
-        class="btn-icon"
-        :class="{ active: showSearch }"
-        @click="toggleSearch"
-        title="查找 (Ctrl+F)"
-      >
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-        >
-          <circle cx="11" cy="11" r="8" />
-          <line x1="21" y1="21" x2="16.65" y2="16.65" />
-        </svg>
-      </button>
       <button class="btn-icon danger" @click="$emit('delete', note.id)" title="删除笔记">
         <svg
           width="16"
@@ -94,28 +24,13 @@
       </button>
     </div>
 
-    <!-- 编辑区 -->
+    <!-- Block 编辑器 -->
     <div class="note-editor-body">
-      <pre
-        ref="backdrop"
-        class="backdrop"
-        aria-hidden="true"
-        v-if="keyword && matchCount > 0"
-      ><template v-for="(line, li) in highlightedLines" :key="li"><template v-if="li > 0">
-</template><template v-for="(seg, si) in line" :key="si"><span v-if="seg.type === 'match'" class="match">{{ seg.text }}</span><span v-else-if="seg.type === 'current'" class="current">{{ seg.text }}</span><template v-else>{{ seg.text }}</template></template></template></pre>
-      <textarea
-        ref="textarea"
-        :value="note.content"
-        @input="onInput"
-        @scroll="syncScroll"
-        @keydown.ctrl.f.prevent="toggleSearch"
-        placeholder="开始编写笔记..."
-      ></textarea>
+      <BlockEditor v-model="editorContent" />
     </div>
 
     <div class="note-editor-footer">
-      <span>{{ (note.content || '').length }} 字</span>
-      <span v-if="keyword && matchCount > 0">找到 {{ matchCount }} 处匹配</span>
+      <span>{{ wordCount }} 字</span>
       <span>{{ formatDate(note.updated_at) }}</span>
     </div>
   </div>
@@ -129,129 +44,194 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch } from 'vue'
+import BlockEditor from './BlockEditor.vue'
 
 const props = defineProps({ note: Object })
 const emit = defineEmits(['update', 'delete'])
 
-const showSearch = ref(false)
-const keyword = ref('')
-const caseSensitive = ref(false)
-const currentMatchIndex = ref(0)
-const searchInput = ref(null)
-const textarea = ref(null)
-const backdrop = ref(null)
+// 默认的空文档结构
+const emptyDoc = {
+  type: 'doc',
+  content: [
+    { type: 'paragraph' }
+  ]
+}
 
-const matches = computed(() => {
-  if (!keyword.value || !props.note?.content) return []
-  const text = props.note.content
-  const kw = caseSensitive.value ? keyword.value : keyword.value.toLowerCase()
-  const src = caseSensitive.value ? text : text.toLowerCase()
-  const result = []
-  let pos = 0
-  while ((pos = src.indexOf(kw, pos)) !== -1) {
-    result.push(pos)
-    pos += 1
+// 将纯文本转换为 Block 结构
+function textToDoc(text) {
+  if (!text || text.trim() === '') {
+    return emptyDoc
   }
-  return result
-})
-
-const matchCount = computed(() => matches.value.length)
-
-watch(keyword, () => {
-  currentMatchIndex.value = 0
-})
-
-const highlightedLines = computed(() => {
-  if (!keyword.value || !props.note?.content) return []
-  const text = props.note.content
-  const kw = keyword.value
-  const kwLen = kw.length
-  const m = matches.value
-  if (m.length === 0) return [[{ text, type: 'plain' }]]
-
-  const rawSegments = []
-  let lastEnd = 0
-  for (let i = 0; i < m.length; i++) {
-    const start = m[i]
-    if (start > lastEnd) {
-      rawSegments.push({ text: text.slice(lastEnd, start), type: 'plain' })
+  
+  // 尝试解析 JSON
+  try {
+    const parsed = JSON.parse(text)
+    if (parsed.type === 'doc') {
+      return parsed
     }
-    rawSegments.push({
-      text: text.slice(start, start + kwLen),
-      type: i === currentMatchIndex.value ? 'current' : 'match',
-    })
-    lastEnd = start + kwLen
+  } catch {
+    // 不是 JSON，按 Markdown 格式处理
   }
-  if (lastEnd < text.length) {
-    rawSegments.push({ text: text.slice(lastEnd), type: 'plain' })
-  }
-
-  const lines = [[]]
-  for (const seg of rawSegments) {
-    const parts = seg.text.split('\n')
-    for (let i = 0; i < parts.length; i++) {
-      if (i > 0) lines.push([])
-      if (parts[i]) {
-        lines[lines.length - 1].push({ text: parts[i], type: seg.type })
+  
+  // 解析 Markdown 格式
+  const lines = text.split('\n')
+  const content = []
+  let i = 0
+  
+  while (i < lines.length) {
+    const line = lines[i]
+    
+    // 检查是否是标题
+    const headingMatch = line.match(/^(#{1,3})\s+(.+)/)
+    if (headingMatch) {
+      const level = headingMatch[1].length
+      const text = headingMatch[2]
+      content.push({
+        type: 'heading',
+        attrs: { level },
+        content: [{ type: 'text', text }]
+      })
+      i++
+      continue
+    }
+    
+    // 检查是否是代码块开始
+    const codeBlockMatch = line.match(/^```(\w*)/)
+    if (codeBlockMatch) {
+      const language = codeBlockMatch[1] || ''
+      const codeLines = []
+      i++
+      // 读取代码块内容直到结束标记
+      while (i < lines.length && !lines[i].startsWith('```')) {
+        // 反转义代码块内容中的结束标记
+        let codeLine = lines[i]
+        codeLine = codeLine.replace(/\\`\\`\\`/g, '```')
+        codeLines.push(codeLine)
+        i++
       }
+      i++ // 跳过结束标记 ```
+      content.push({
+        type: 'codeBlock',
+        attrs: { language },
+        content: [{ type: 'text', text: codeLines.join('\n') }]
+      })
+      continue
+    }
+    
+    // 普通段落
+    content.push({
+      type: 'paragraph',
+      content: line ? [{ type: 'text', text: line }] : []
+    })
+    i++
+  }
+  
+  return {
+    type: 'doc',
+    content: content.length > 0 ? content : [{ type: 'paragraph' }]
+  }
+}
+
+// 将 Block 结构转换为纯文本（用于存储）
+function docToText(doc) {
+  if (!doc || !doc.content) return ''
+  
+  const lines = []
+  for (const node of doc.content) {
+    if (node.type === 'paragraph') {
+      const text = extractText(node)
+      lines.push(text)
+    } else if (node.type === 'heading') {
+      const level = node.attrs?.level || 1
+      const prefix = '#'.repeat(level) + ' '
+      const text = extractText(node)
+      lines.push(prefix + text)
+    } else if (node.type === 'codeBlock') {
+      const language = node.attrs?.language || ''
+      const text = extractText(node)
+      // 转义代码块内容中的结束标记
+      const escapedText = text.replace(/```/g, '\\`\\`\\`')
+      lines.push('```' + language)
+      lines.push(escapedText)
+      lines.push('```')
+    } else {
+      const text = extractText(node)
+      lines.push(text)
     }
   }
-  return lines
+  
+  return lines.join('\n')
+}
+
+// 从节点中提取文本
+function extractText(node) {
+  if (!node.content) return ''
+  
+  let text = ''
+  for (const child of node.content) {
+    if (child.type === 'text') {
+      text += child.text || ''
+    } else if (child.type === 'hardBreak') {
+      text += '\n'
+    } else {
+      text += extractText(child)
+    }
+  }
+  return text
+}
+
+// 编辑器内容
+const editorContent = ref(emptyDoc)
+
+// 监听笔记变化，更新编辑器内容
+watch(() => props.note, (newNote) => {
+  if (newNote) {
+    editorContent.value = textToDoc(newNote.content)
+  }
+}, { immediate: true })
+
+// 监听编辑器内容变化，触发更新
+watch(editorContent, (newContent) => {
+  if (props.note) {
+    const text = docToText(newContent)
+    emit('update', 'content', text)
+  }
+}, { deep: true })
+
+// 字数统计
+const wordCount = computed(() => {
+  if (!props.note?.content) return 0
+  // 尝试解析为 JSON 统计
+  try {
+    const doc = JSON.parse(props.note.content)
+    return countDocWords(doc)
+  } catch {
+    // 纯文本统计
+    return props.note.content.length
+  }
 })
 
-
-function syncScroll() {
-  if (!textarea.value || !backdrop.value) return
-  backdrop.value.scrollTop = textarea.value.scrollTop
-  backdrop.value.scrollLeft = textarea.value.scrollLeft
-}
-
-function navigateNext() {
-  if (!matchCount.value) return
-  currentMatchIndex.value = (currentMatchIndex.value + 1) % matchCount.value
-  scrollToCurrent()
-}
-
-function navigatePrev() {
-  if (!matchCount.value) return
-  currentMatchIndex.value = (currentMatchIndex.value - 1 + matchCount.value) % matchCount.value
-  scrollToCurrent()
-}
-
-function scrollToCurrent() {
-  nextTick(() => {
-    if (!backdrop.value || !textarea.value) return
-    const el = backdrop.value.querySelector('.current')
-    if (el) {
-      const viewH = textarea.value.clientHeight
-      const elTop =
-        el.getBoundingClientRect().top -
-        backdrop.value.getBoundingClientRect().top +
-        backdrop.value.scrollTop
-      textarea.value.scrollTop = elTop - viewH / 2 + el.offsetHeight / 2
-      syncScroll()
-    }
-  })
-}
-
-function toggleSearch() {
-  showSearch.value = !showSearch.value
-  if (showSearch.value) {
-    nextTick(() => searchInput.value?.focus())
-  } else {
-    keyword.value = ''
+function countDocWords(doc) {
+  if (!doc || !doc.content) return 0
+  let count = 0
+  for (const node of doc.content) {
+    count += countNodeWords(node)
   }
+  return count
 }
 
-function closeSearch() {
-  showSearch.value = false
-  keyword.value = ''
-  textarea.value?.focus()
-}
-
-function onInput(e) {
-  emit('update', 'content', e.target.value)
+function countNodeWords(node) {
+  let count = 0
+  if (node.type === 'text') {
+    count += (node.text || '').length
+  }
+  if (node.content) {
+    for (const child of node.content) {
+      count += countNodeWords(child)
+    }
+  }
+  return count
 }
 
 function formatDate(isoStr) {
@@ -302,110 +282,10 @@ function formatDate(isoStr) {
   color: var(--text-muted);
 }
 
-/* ---- Header 搜索框 ---- */
-.header-search {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 1px 6px;
-  animation: slideIn 0.15s ease;
-}
-
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateX(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-.header-search-field {
-  width: 140px;
-  font-size: 13px;
-  border: none;
-  background: transparent;
-  color: var(--text);
-  outline: none;
-  padding: 4px 0;
-}
-
-.header-search-field::placeholder {
-  color: var(--text-muted);
-}
-
-.match-count {
-  font-size: 11px;
-  color: var(--text-muted);
-  white-space: nowrap;
-  padding: 0 2px;
-}
-
 /* ---- 编辑区 ---- */
 .note-editor-body {
   flex: 1;
-  position: relative;
   overflow: hidden;
-}
-
-.backdrop {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  overflow: hidden;
-  margin: 0;
-  padding: 16px;
-  border: none;
-  font-family: inherit;
-  font-size: 14px;
-  line-height: 1.8;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  tab-size: 4;
-  box-sizing: border-box;
-  scrollbar-gutter: stable;
-  color: var(--text);
-}
-
-.note-editor-body textarea {
-  position: relative;
-  z-index: 2;
-  width: 100%;
-  height: 100%;
-  border: none;
-  background: transparent;
-  caret-color: var(--text);
-  padding: 16px;
-  resize: none;
-  outline: none;
-  font-family: inherit;
-  font-size: 14px;
-  line-height: 1.8;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  tab-size: 4;
-  box-sizing: border-box;
-  scrollbar-gutter: stable;
-}
-
-/* 高亮样式 */
-.match {
-  background: rgba(255, 213, 0, 0.35);
-  border-radius: 2px;
-}
-
-.current {
-  background: rgba(255, 170, 0, 0.7);
-  border-radius: 2px;
-  outline: 1px solid rgba(255, 170, 0, 0.9);
 }
 
 /* ---- Footer ---- */
@@ -446,19 +326,5 @@ function formatDate(isoStr) {
 .btn-icon.danger:hover {
   background: rgba(239, 68, 68, 0.1);
   color: #ef4444;
-}
-
-.btn-icon.xs {
-  padding: 3px;
-}
-
-.btn-icon.xs:hover:not(:disabled) {
-  background: var(--bg-active);
-  color: var(--text);
-}
-
-.btn-icon.xs:disabled {
-  opacity: 0.3;
-  cursor: default;
 }
 </style>
