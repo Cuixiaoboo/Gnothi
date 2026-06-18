@@ -1,4 +1,4 @@
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 
 const theme = ref(localStorage.getItem('theme') || 'dark')
 
@@ -9,7 +9,9 @@ function setTheme(t) {
 }
 
 function toggleTheme() {
-  setTheme(theme.value === 'dark' ? 'light' : 'dark')
+  const themes = ['dark', 'gray', 'light']
+  const idx = themes.indexOf(theme.value)
+  setTheme(themes[(idx + 1) % themes.length])
 }
 
 // 初始化

@@ -1,9 +1,8 @@
 <template>
-  <!-- 只加了 pywebview-drag-region 这一个类 -->
-  <div class="titlebar pywebview-drag-region">
+  <div class="titlebar" data-tauri-drag-region>
     <div class="titlebar-left">
-      <!-- <span class="titlebar-icon">◆</span>
-      <span class="titlebar-title">Gnothi</span> -->
+      <!-- <span class="titlebar-icon">◆</span> -->
+      <span class="titlebar-title">Gnothi</span>
     </div>
     <div class="titlebar-controls">
       <button class="tb-btn tb-min" @click="minimize" title="最小化">
@@ -19,7 +18,7 @@
           />
         </svg>
       </button>
-      <!-- <button class="tb-btn tb-max" @click="toggleMaximize" title="最大化">
+      <button class="tb-btn tb-max" @click="toggleMaximize" title="最大化">
         <svg
           v-if="!isMaximized"
           width="12"
@@ -43,7 +42,7 @@
           <rect x="3" y="1" width="7.5" height="7.5" rx="0.5" />
           <path d="M1 4.5v6a1 1 0 001 1h6" />
         </svg>
-      </button> -->
+      </button>
       <button class="tb-btn tb-close" @click="close" title="关闭">
         <svg width="12" height="12" viewBox="0 0 12 12">
           <line
@@ -72,27 +71,28 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
+import { getCurrentWindow } from '@tauri-apps/api/window'
 
+const appWindow = getCurrentWindow()
 const isMaximized = ref(false)
 
 async function updateMaximizedState() {
   try {
-    isMaximized.value = await window.pywebview.api.is_maximized()
+    isMaximized.value = await appWindow.isMaximized()
   } catch (e) {}
 }
 
 async function minimize() {
-  await window.pywebview.api.minimize()
+  await appWindow.minimize()
 }
 
 async function toggleMaximize() {
-  await window.pywebview.api.toggle_maximize()
-  isMaximized.value = !isMaximized.value
+  await appWindow.toggleMaximize()
   setTimeout(updateMaximizedState, 100)
 }
 
 async function close() {
-  await window.pywebview.api.close()
+  await appWindow.close()
 }
 
 onMounted(() => {
@@ -107,21 +107,23 @@ onUnmounted(() => {
 
 <style scoped>
 .titlebar {
-  display: flex;
   align-items: center;
-  justify-content: space-between;
   height: 36px;
   background: var(--bg-sidebar);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   user-select: none;
+  position: relative;
 }
 
 .titlebar-left {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
   display: flex;
   align-items: center;
   gap: 8px;
-  padding-left: 14px;
 }
 
 .titlebar-icon {
@@ -130,13 +132,15 @@ onUnmounted(() => {
 }
 
 .titlebar-title {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text-sec);
   letter-spacing: -0.3px;
 }
 
 .titlebar-controls {
+  position: absolute;
+  right: 0;
   display: flex;
   height: 100%;
 }

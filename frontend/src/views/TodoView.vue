@@ -50,7 +50,7 @@ const filteredTodos = computed(() => {
 
 async function loadTodos() {
   try {
-    const { data } = await todoApi.list()
+    const data = await todoApi.list()
     todos.value = data
   } catch (e) {
     console.error(e)
@@ -60,7 +60,7 @@ async function loadTodos() {
 async function addTodo({ title, priority }) {
   // if (!title.trim()) return
   try {
-    const { data } = await todoApi.create({ title, priority })
+    const data = await todoApi.create({ title, priority })
     todos.value.unshift(data)
     showToast('已添加待办')
   } catch {
@@ -71,7 +71,7 @@ async function addTodo({ title, priority }) {
 async function toggleStatus(todo) {
   const newStatus = todo.status === 'completed' ? 'pending' : 'completed'
   try {
-    const { data } = await todoApi.update(todo.id, { status: newStatus })
+    const data = await todoApi.update(todo.id, { status: newStatus })
     const idx = todos.value.findIndex((t) => t.id === todo.id)
     if (idx >= 0) todos.value[idx] = data
   } catch {
@@ -86,7 +86,7 @@ async function updateField(id, field, value) {
   clearTimeout(updateTimer)
   updateTimer = setTimeout(async () => {
     try {
-      const { data } = await todoApi.update(id, { [field]: value })
+      const data = await todoApi.update(id, { [field]: value })
       const i = todos.value.findIndex((t) => t.id === id)
       if (i >= 0) todos.value[i] = data
     } catch {
@@ -146,7 +146,8 @@ onMounted(loadTodos)
 }
 
 .todo-layout {
-  max-width: 760px;
+  width: 100%;
+  max-width: 100%;
 }
 
 .todo-list {

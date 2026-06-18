@@ -91,10 +91,16 @@ const calendarDays = computed(() => {
 
 function changeYear(y) {
   calYear.value = y
+  // 自动选择该月的1号
+  const dateStr = `${y}-${String(calMonth.value + 1).padStart(2, '0')}-01`
+  selectDate(dateStr)
 }
 
 function changeMonth(m) {
   calMonth.value = m
+  // 自动选择该月的1号
+  const dateStr = `${calYear.value}-${String(m + 1).padStart(2, '0')}-01`
+  selectDate(dateStr)
 }
 
 function goToday() {
@@ -106,7 +112,7 @@ function goToday() {
 
 async function loadReportDates() {
   try {
-    const { data } = await reportApi.getDates()
+    const data = await reportApi.getDates()
     reportDatesSet.value = new Set(data)
   } catch (e) {
     console.error(e)
@@ -115,7 +121,7 @@ async function loadReportDates() {
 
 async function loadReport(date) {
   try {
-    const { data } = await reportApi.get(date)
+    const data = await reportApi.get(date)
     if (data.exists) {
       columns.value = data.columns || []
       rows.value = data.rows || []

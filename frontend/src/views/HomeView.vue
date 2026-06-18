@@ -114,7 +114,7 @@
               class="note-row"
               v-for="n in notes.slice(0, 6)"
               :key="n.id"
-              @click="$router.push({ name: 'notes' })"
+              @click="$router.push({ name: 'notes', query: { id: n.id } })"
             >
               <div class="note-title">{{ n.title }}</div>
               <div class="note-preview">{{ (n.content || '').slice(0, 40) || '空笔记' }}</div>
@@ -179,9 +179,9 @@ onMounted(async () => {
       noteApi.list(),
       reportApi.getDates(),
     ])
-    todos.value = todoRes.data
-    notes.value = noteRes.data
-    reportCount.value = dateRes.data.length
+    todos.value = todoRes
+    notes.value = noteRes
+    reportCount.value = dateRes.length
   } catch (e) {
     console.error(e)
   }
