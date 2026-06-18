@@ -34,11 +34,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, inject } from 'vue'
+import { ref, computed, onMounted, inject, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { noteApi } from '../api'
 import NotesList from '../components/notes/NotesList.vue'
 import NoteEditor from '../components/notes/NoteEditor.vue'
 
+const route = useRoute()
 const showToast = inject('showToast')
 const showConfirm = inject('showConfirm')
 
@@ -58,16 +60,34 @@ const currentNote = computed(() => notes.value.find((n) => n.id === selectedId.v
 
 async function loadNotes() {
   try {
-    const { data } = await noteApi.list()
+    const data = await noteApi.list()
     notes.value = data
+    // 如果路由参数中有 id，选中对应的笔记
+    const noteId = Number(route.query.id)
+    if (noteId && data.find((n) => n.id === noteId)) {
+      selectedId.value = noteId
+    } else if (data.length > 0) {
+      selectedId.value = data[0].id
+    }
   } catch (e) {
     console.error(e)
   }
 }
 
+// 监听路由参数变化
+watch(
+  () => route.query.id,
+  (newId) => {
+    const noteId = Number(newId)
+    if (noteId && notes.value.find((n) => n.id === noteId)) {
+      selectedId.value = noteId
+    }
+  },
+)
+
 async function addNote() {
   try {
-    const { data } = await noteApi.create({ title: '新笔记' })
+    const data = await noteApi.create({ title: '新笔记' })
     notes.value.unshift(data)
     selectedId.value = data.id
     showToast('已创建笔记')

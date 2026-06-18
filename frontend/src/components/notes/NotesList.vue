@@ -14,20 +14,23 @@
     </div>
     <div class="notes-items">
       <draggable
-        :list="localNotes"
+        v-model="localNotes"
         item-key="id"
-        handle=".drag-handle"
         ghost-class="ghost"
-        animation="200"
+        :animation="150"
+        force-fallback="true"
+        fallback-class="dragging"
+        scroll-sensitivity="80"
+        scroll-speed="10"
         @end="onDragEnd"
       >
-        <template #item="{ element }">
+        <template #item="{ element, index }">
           <div
             class="note-card"
             :class="{ active: selectedId === element.id }"
             @click="$emit('select', element.id)"
           >
-            <div class="drag-handle" @click.stop>
+            <div class="drag-handle">
               <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
                 <circle cx="9" cy="6" r="1.5" />
                 <circle cx="15" cy="6" r="1.5" />
@@ -59,22 +62,26 @@ import { ref, watch } from 'vue'
 import draggable from 'vuedraggable'
 
 const props = defineProps({
-  notes: Array,
+  notes: {
+    type: Array,
+    default: () => []
+  },
   selectedId: Number,
   search: String,
 })
 
 const emit = defineEmits(['select', 'search', 'reorder'])
 
-// 创建本地副本供 draggable 的 :list 绑定
-const localNotes = ref([...props.notes])
+// 创建本地副本供 draggable 的 v-model 绑定
+const localNotes = ref([])
 
+// 监听 props.notes 变化，同步到本地
 watch(
   () => props.notes,
   (val) => {
     localNotes.value = [...val]
   },
-  { deep: true },
+  { immediate: true, deep: true },
 )
 
 function formatDate(isoStr) {
@@ -132,7 +139,6 @@ function onDragEnd() {
   border-radius: var(--radius);
   border: 1px solid transparent;
   cursor: pointer;
-  transition: all 0.15s;
   display: flex;
   align-items: flex-start;
   gap: 8px;
@@ -153,8 +159,8 @@ function onDragEnd() {
   cursor: grab;
   color: var(--text-muted);
   opacity: 0;
-  transition: opacity 0.2s;
   padding: 2px 0;
+  user-select: none;
 }
 
 .note-card:hover .drag-handle {
@@ -203,6 +209,13 @@ function onDragEnd() {
   opacity: 0.4;
   background: var(--bg-active);
   border: 1px dashed var(--border-light);
+}
+
+/* 拖拽中的元素 */
+.dragging {
+  opacity: 0.9;
+  background: var(--bg-surface);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 @media (max-width: 768px) {

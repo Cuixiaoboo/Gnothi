@@ -1,6 +1,11 @@
 <template>
   <div class="calendar">
     <div class="cal-header">
+      <button class="cal-nav-btn" @click="prevMonth" title="上一月">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <polyline points="15 18 9 12 15 6" />
+        </svg>
+      </button>
       <select
         class="cal-select"
         :value="year"
@@ -15,6 +20,11 @@
       >
         <option v-for="m in 12" :key="m - 1" :value="m - 1">{{ m }}月</option>
       </select>
+      <button class="cal-nav-btn" @click="nextMonth" title="下一月">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+      </button>
     </div>
     <div class="cal-grid">
       <div class="cal-weekday" v-for="d in weekdays" :key="d">{{ d }}</div>
@@ -47,7 +57,7 @@ const props = defineProps({
   days: Array,
   reportDates: { type: Set, default: () => new Set() },
 })
-defineEmits(['select', 'changeYear', 'changeMonth', 'goToday'])
+const emit = defineEmits(['select', 'changeYear', 'changeMonth', 'goToday'])
 
 const weekdays = ['日', '一', '二', '三', '四', '五', '六']
 
@@ -58,6 +68,24 @@ const yearRange = computed(() => {
   }
   return years
 })
+
+function prevMonth() {
+  if (props.month === 0) {
+    emit('changeYear', props.year - 1)
+    emit('changeMonth', 11)
+  } else {
+    emit('changeMonth', props.month - 1)
+  }
+}
+
+function nextMonth() {
+  if (props.month === 11) {
+    emit('changeYear', props.year + 1)
+    emit('changeMonth', 0)
+  } else {
+    emit('changeMonth', props.month + 1)
+  }
+}
 </script>
 
 <style scoped>
@@ -75,28 +103,48 @@ const yearRange = computed(() => {
 .cal-header {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   margin-bottom: 12px;
+}
+
+.cal-nav-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-sec);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+
+.cal-nav-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+  border-color: var(--border-light);
 }
 
 .cal-select {
   flex: 1;
+  min-width: 0;
   background: var(--bg-surface-2);
   border: 1px solid var(--border);
   color: var(--text);
-  padding: 6px 8px;
+  padding: 6px 4px;
   border-radius: var(--radius);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   outline: none;
   text-align: center;
   appearance: none;
   -webkit-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239a9a9a' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 8px center;
-  padding-right: 24px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .cal-select:hover {
