@@ -164,11 +164,3 @@ npm run tauri build --debug
 | rows | TEXT | 表格数据（JSON） |
 | created_at | DATETIME | 创建时间 |
 | updated_at | DATETIME | 更新时间 |
-
-## 后续规划
-
-- [ ] 笔记 Block 编辑器（标题、段落、代码块）
-- [ ] 全局搜索
-- [ ] 数据导入导出
-- [ ] 系统托盘
-- [ ] 工作计时与统计
