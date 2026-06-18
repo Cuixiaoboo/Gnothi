@@ -13,9 +13,9 @@
     "windows": [
       {
         "title": "Gnothi - 知识管理",
-        "minWidth": 1024,
+        "minWidth": 1200,
         "minHeight": 768,
-        "maxWidth": 1024,
+        "maxWidth": 1200,
         "maxHeight": 768,
         "resizable": false,
         "fullscreen": false,

@@ -80,6 +80,24 @@
             <polyline points="9 18 15 12 9 6" />
           </svg>
         </button>
+        <button class="quick-card" @click="$router.push({ name: 'tools' })">
+          <div class="qc-icon">🛠️</div>
+          <div class="qc-text">
+            <div class="qc-label">工具箱</div>
+            <div class="qc-desc">JSON 格式化等工具</div>
+          </div>
+          <svg
+            class="qc-arrow"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </button>
       </div>
 
       <!-- 内容区 -->
