@@ -183,10 +183,11 @@ function extractText(node) {
 
 // 编辑器内容
 const editorContent = ref(emptyDoc)
+let isInternalUpdate = false
 
 // 监听笔记变化，更新编辑器内容
 watch(() => props.note, (newNote) => {
-  if (newNote) {
+  if (newNote && !isInternalUpdate) {
     editorContent.value = textToDoc(newNote.content)
   }
 }, { immediate: true })
@@ -194,8 +195,10 @@ watch(() => props.note, (newNote) => {
 // 监听编辑器内容变化，触发更新
 watch(editorContent, (newContent) => {
   if (props.note) {
+    isInternalUpdate = true
     const text = docToText(newContent)
     emit('update', 'content', text)
+    isInternalUpdate = false
   }
 }, { deep: true })
 

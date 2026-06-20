@@ -67,6 +67,8 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue'])
 
+let isInternalUpdate = false
+
 const editor = useEditor({
   content: props.modelValue,
   extensions: [
@@ -79,17 +81,20 @@ const editor = useEditor({
       placeholder: '输入 / 命令，或直接开始输入...'
     }),
     CodeBlockLowlight.configure({
-      lowlight
+      lowlight,
+      defaultLanguage: 'plaintext'
     })
   ],
   onUpdate: ({ editor }) => {
+    isInternalUpdate = true
     emit('update:modelValue', editor.getJSON())
+    isInternalUpdate = false
   }
 })
 
-// 监听外部内容变化
+// 监听外部内容变化，只在外部更新时设置内容
 watch(() => props.modelValue, (newContent) => {
-  if (editor.value && JSON.stringify(editor.value.getJSON()) !== JSON.stringify(newContent)) {
+  if (editor.value && !isInternalUpdate) {
     editor.value.commands.setContent(newContent, false)
   }
 }, { deep: true })

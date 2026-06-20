@@ -239,7 +239,7 @@ const iconHome = {
 
 const navItems = [
   { name: 'home', label: '首页', icon: iconHome },
-  { name: 'report', label: '每日日报', icon: iconCalendar },
+  { name: 'report', label: '随手小记', icon: iconCalendar },
   { name: 'todo', label: '待办事项', icon: iconCheck },
   { name: 'notes', label: '个人笔记', icon: iconDoc },
   { name: 'tools', label: '工具箱', icon: iconTools },
