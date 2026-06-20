@@ -1,7 +1,7 @@
 <template>
   <div class="view-wrapper">
     <div class="page-header">
-      <div class="page-title">每日日报</div>
+      <div class="page-title">随手小记</div>
       <div class="save-indicator" :class="saveStatus">
         <template v-if="saveStatus === 'saving'">● 保存中...</template>
         <template v-else-if="saveStatus === 'saved'">✓ 已保存</template>
@@ -130,7 +130,7 @@ async function loadReport(date) {
       columns.value = [
         { key: 'content', label: '内容' },
         { key: 'status', label: '状态' },
-        { key: 'notes', label: '备注' },
+        // { key: 'notes', label: '备注' },
       ]
       rows.value = []
     }
@@ -138,7 +138,7 @@ async function loadReport(date) {
     columns.value = [
       { key: 'content', label: '内容' },
       { key: 'status', label: '状态' },
-      { key: 'notes', label: '备注' },
+      // { key: 'notes', label: '备注' },
     ]
     rows.value = []
   }

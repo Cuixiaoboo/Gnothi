@@ -30,14 +30,20 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useRoute } from 'vue-router'
 import JsonFormatter from '../components/tools/JsonFormatter.vue'
+// import RegexTester from '../components/tools/RegexTester.vue'
 
-const activeTool = ref('json')
+const route = useRoute()
+
+// 从路由参数获取默认工具
+const defaultTool = route.query.tool || 'json'
+const activeTool = ref(defaultTool)
 
 const tools = [
   { id: 'json', name: 'JSON 格式化', icon: '{ }' },
-  // 后续可以添加更多工具
   // { id: 'regex', name: '正则测试', icon: '.*' },
+  // 后续可以添加更多工具
   // { id: 'timestamp', name: '时间戳转换', icon: '⏱' },
   // { id: 'base64', name: 'Base64 编解码', icon: 'B64' },
 ]

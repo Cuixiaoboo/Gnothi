@@ -437,6 +437,74 @@ fn delete_report(state: State<DbState>, date: String) -> Result<bool, String> {
     Ok(true)
 }
 
+// ========== 名言命令 ==========
+
+#[tauri::command]
+fn get_mottos(state: State<DbState>) -> Result<Vec<serde_json::Value>, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let mut stmt = conn
+        .prepare("SELECT id, content, created_at FROM mottos ORDER BY id ASC")
+        .map_err(|e| e.to_string())?;
+
+    let mottos = stmt
+        .query_map([], |row| {
+            Ok(serde_json::json!({
+                "id": row.get::<_, i32>(0)?,
+                "content": row.get::<_, String>(1)?,
+                "created_at": row.get::<_, String>(2).unwrap_or_default()
+            }))
+        })
+        .map_err(|e| e.to_string())?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())?;
+
+    Ok(mottos)
+}
+
+#[tauri::command]
+fn create_motto(state: State<DbState>, content: String) -> Result<serde_json::Value, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let now = now_str();
+
+    conn.execute(
+        "INSERT INTO mottos (content, created_at) VALUES (?1, ?2)",
+        params![content, now],
+    )
+    .map_err(|e| e.to_string())?;
+
+    let id = conn.last_insert_rowid() as i32;
+    info!("创建名言: [{}] {}", id, content);
+
+    Ok(serde_json::json!({
+        "id": id,
+        "content": content,
+        "created_at": now
+    }))
+}
+
+#[tauri::command]
+fn update_motto(state: State<DbState>, id: i32, content: String) -> Result<bool, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+
+    conn.execute(
+        "UPDATE mottos SET content = ?1 WHERE id = ?2",
+        params![content, id],
+    )
+    .map_err(|e| e.to_string())?;
+
+    info!("更新名言: [{}] {}", id, content);
+    Ok(true)
+}
+
+#[tauri::command]
+fn delete_motto(state: State<DbState>, id: i32) -> Result<bool, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    conn.execute("DELETE FROM mottos WHERE id = ?1", [id])
+        .map_err(|e| e.to_string())?;
+    info!("删除名言: [{}]", id);
+    Ok(true)
+}
+
 // ========== 主函数 ==========
 
 fn main() {
@@ -465,6 +533,7 @@ fn main() {
                     },
                 ))
                 .timezone_strategy(tauri_plugin_log::TimezoneStrategy::UseLocal)
+                .level(log::LevelFilter::Info)
                 .build(),
         )
         .setup(|_app| {
@@ -509,8 +578,36 @@ fn main() {
                         updated_at DATETIME
                     );
                     CREATE INDEX IF NOT EXISTS idx_notes_sort_order ON notes(sort_order);
-                    CREATE INDEX IF NOT EXISTS idx_daily_reports_date ON daily_reports(date);"
+                    CREATE INDEX IF NOT EXISTS idx_daily_reports_date ON daily_reports(date);
+                    CREATE TABLE IF NOT EXISTS mottos (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        content TEXT NOT NULL,
+                        created_at DATETIME
+                    );"
                 ).expect("Failed to init database");
+                
+                // 插入默认名言（如果表为空）
+                let count: i32 = conn.query_row("SELECT COUNT(*) FROM mottos", [], |row| row.get(0)).unwrap_or(0);
+                if count == 0 {
+                    let default_mottos = vec![
+                        "工作是为了生活，而不是生活为了工作",
+                        "上班一条虫，下班一条龙",
+                        "摸鱼一时爽，一直摸鱼一直爽",
+                        "工资是固定的，摸鱼就是赚到",
+                        "今天也是充满希望的摸鱼日",
+                        "再坚持一下，马上就自由了",
+                        "只要心中有海，哪里都是马尔代夫",
+                        "不是我想摸鱼，是鱼主动来找我的",
+                        "世界上最远的距离，是上班到下班的距离",
+                        "每天最重要的事情就是等下班",
+                    ];
+                    let now = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+                    for motto in default_mottos {
+                        conn.execute("INSERT INTO mottos (content, created_at) VALUES (?1, ?2)", params![motto, now]).ok();
+                    }
+                    info!("已插入默认名言");
+                }
+                
                 conn
             }),
         })
@@ -529,6 +626,10 @@ fn main() {
             get_report,
             save_report,
             delete_report,
+            get_mottos,
+            create_motto,
+            update_motto,
+            delete_motto,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

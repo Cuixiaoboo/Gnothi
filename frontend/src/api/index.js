@@ -25,3 +25,11 @@ export const noteApi = {
   delete: (id) => invoke('delete_note', { id }),
   reorder: (ids) => invoke('reorder_notes', { ids }),
 }
+
+// ── 名言 ──
+export const mottoApi = {
+  list: () => invoke('get_mottos'),
+  create: (content) => invoke('create_motto', { content }),
+  update: (id, content) => invoke('update_motto', { id, content }),
+  delete: (id) => invoke('delete_motto', { id }),
+}

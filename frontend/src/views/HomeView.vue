@@ -1,115 +1,57 @@
 <template>
   <div class="view-wrapper">
     <div class="page-body">
-      <!-- 顶部欢迎区 -->
+      <!-- 顶部问候区 -->
       <div class="hero">
         <div class="hero-left">
           <div class="greeting">{{ greetingText }}，今天记得开心哦！</div>
           <div class="hero-date">{{ todayStr }} {{ weekdayStr }}</div>
         </div>
         <div class="hero-right">
-          <div class="stat-pill">
-            <span class="stat-pill-num">{{ todos.length }}</span>
-            <span class="stat-pill-label">待办</span>
+          <div class="countdown" v-if="!isAfterWork">
+            <div class="countdown-label">距离下班还有</div>
+            <div class="countdown-time">{{ countdownText }}</div>
           </div>
-          <div class="stat-pill">
-            <span class="stat-pill-num">{{ notes.length }}</span>
-            <span class="stat-pill-label">笔记</span>
-          </div>
-          <div class="stat-pill">
-            <span class="stat-pill-num">{{ reportCount }}</span>
-            <span class="stat-pill-label">日报</span>
+          <div class="countdown done" v-else>
+            <div class="countdown-label">好好休息哦！</div>
           </div>
         </div>
       </div>
 
-      <!-- 快捷入口 -->
-      <div class="section-title">快捷入口</div>
-      <div class="quick-grid">
-        <button class="quick-card" @click="$router.push({ name: 'report' })">
-          <div class="qc-icon">📋</div>
-          <div class="qc-text">
-            <div class="qc-label">今日日报</div>
-            <div class="qc-desc">记录今日工作内容</div>
-          </div>
-          <svg
-            class="qc-arrow"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
-        </button>
-        <button class="quick-card" @click="$router.push({ name: 'todo' })">
-          <div class="qc-icon">✅</div>
-          <div class="qc-text">
-            <div class="qc-label">待办事项</div>
-            <div class="qc-desc">{{ pendingTodos.length }} 项待处理</div>
-          </div>
-          <svg
-            class="qc-arrow"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
-        </button>
-        <button class="quick-card" @click="$router.push({ name: 'notes' })">
-          <div class="qc-icon">📝</div>
-          <div class="qc-text">
-            <div class="qc-label">个人笔记</div>
-            <div class="qc-desc">{{ notes.length }} 篇笔记</div>
-          </div>
-          <svg
-            class="qc-arrow"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
-        </button>
-        <button class="quick-card" @click="$router.push({ name: 'tools' })">
-          <div class="qc-icon">🛠️</div>
-          <div class="qc-text">
-            <div class="qc-label">工具箱</div>
-            <div class="qc-desc">JSON 格式化等工具</div>
-          </div>
-          <svg
-            class="qc-arrow"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
-        </button>
+      <!-- 统计栏 -->
+      <div class="stats-bar">
+        <div class="stat-item">
+          <span class="stat-icon">🔴</span>
+          <span class="stat-label">待办</span>
+          <span class="stat-value">{{ todos.length }}</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-icon">📃</span>
+          <span class="stat-label">笔记</span>
+          <span class="stat-value">{{ notes.length }}</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-icon">📅</span>
+          <span class="stat-label">日报</span>
+          <span class="stat-value">{{ reportCount }}</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-icon">🧰</span>
+          <span class="stat-label">工具</span>
+          <span class="stat-value">1</span>
+        </div>
       </div>
 
-      <!-- 内容区 -->
-      <div class="content-grid">
-        <!-- 待办列表 -->
-        <div class="panel">
+      <!-- 主要内容区域 -->
+      <div class="main-content">
+        <!-- 左侧：待办事项 -->
+        <div class="content-panel">
           <div class="panel-header">
             <div class="panel-title">待办事项</div>
             <button class="panel-link" @click="$router.push({ name: 'todo' })">查看全部</button>
           </div>
           <div class="panel-body" v-if="pendingTodos.length > 0">
-            <div class="todo-row" v-for="t in pendingTodos.slice(0, 6)" :key="t.id">
+            <div class="todo-row" v-for="t in pendingTodos.slice(0, 5)" :key="t.id">
               <span class="todo-dot" :class="'dot-' + t.priority"></span>
               <span class="todo-text">{{ t.title }}</span>
               <span class="badge" :class="'badge-' + t.status">{{ statusLabel(t.status) }}</span>
@@ -121,8 +63,8 @@
           </div>
         </div>
 
-        <!-- 笔记列表 -->
-        <div class="panel">
+        <!-- 右侧：最近笔记 -->
+        <div class="content-panel">
           <div class="panel-header">
             <div class="panel-title">最近笔记</div>
             <button class="panel-link" @click="$router.push({ name: 'notes' })">查看全部</button>
@@ -130,13 +72,12 @@
           <div class="panel-body" v-if="notes.length > 0">
             <div
               class="note-row"
-              v-for="n in notes.slice(0, 6)"
+              v-for="n in notes.slice(0, 5)"
               :key="n.id"
               @click="$router.push({ name: 'notes', query: { id: n.id } })"
             >
-              <div class="note-title">{{ n.title }}</div>
-              <div class="note-preview">{{ (n.content || '').slice(0, 40) || '空笔记' }}</div>
-              <div class="note-date">{{ formatDate(n.updated_at) }}</div>
+              <div class="note-title">{{ n.title || '无标题' }}</div>
+              <div class="note-preview">{{ (n.content || '').slice(0, 50) || '空笔记' }}</div>
             </div>
           </div>
           <div class="panel-empty" v-else>
@@ -145,17 +86,32 @@
           </div>
         </div>
       </div>
+
+      <!-- 摸鱼名言 -->
+      <div class="motto-section">
+        <div class="motto-text">{{ currentMotto.text }}</div>
+        <button class="motto-refresh" @click="refreshMotto" title="换一条">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <polyline points="23 4 23 10 17 10" />
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+          </svg>
+        </button>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { todoApi, noteApi, reportApi } from '../api'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { todoApi, noteApi, reportApi, mottoApi } from '../api'
 
 const todos = ref([])
 const notes = ref([])
 const reportCount = ref(0)
+const currentTime = ref(new Date())
+
+// 从 localStorage 获取下班时间，默认 18:00
+const workEndTime = ref(localStorage.getItem('workEndTime') || '18:00')
 
 const pendingTodos = computed(() => todos.value.filter((t) => t.status !== 'completed'))
 
@@ -180,17 +136,74 @@ const greetingText = computed(() => {
   return '晚上好'
 })
 
+// 计算下班时间
+const workEndHour = computed(() => {
+  const [h, m] = workEndTime.value.split(':').map(Number)
+  return { hour: h, minute: m }
+})
+
+// 判断是否已下班
+const isAfterWork = computed(() => {
+  const now = currentTime.value
+  const end = workEndHour.value
+  return now.getHours() > end.hour || (now.getHours() === end.hour && now.getMinutes() >= end.minute)
+})
+
+// 倒计时文本
+const countdownText = computed(() => {
+  const now = currentTime.value
+  const end = workEndHour.value
+  
+  let diff = (end.hour * 60 + end.minute) - (now.getHours() * 60 + now.getMinutes())
+  
+  if (diff <= 0) return '00:00:00'
+  
+  const hours = Math.floor(diff / 60)
+  const minutes = diff % 60
+  const seconds = 59 - now.getSeconds()
+  
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+})
+
+// 定时器
+let timer = null
+
 function statusLabel(s) {
   return { hangup: '挂起', pending: '待处理', in_progress: '进行中', completed: '已完成' }[s] || s
 }
 
-function formatDate(isoStr) {
-  if (!isoStr) return ''
-  const d = new Date(isoStr)
-  return `${d.getMonth() + 1}月${d.getDate()}日`
+// 摸鱼名言
+const mottos = ref([])
+const mottoIndex = ref(Math.floor(Date.now() / 86400000))
+
+const currentMotto = computed(() => {
+  if (mottos.value.length === 0) {
+    return { text: '工作是为了生活，而不是生活为了工作' }
+  }
+  const motto = mottos.value[mottoIndex.value % mottos.value.length]
+  return { text: motto.content }
+})
+
+function refreshMotto() {
+  if (mottos.value.length > 0) {
+    mottoIndex.value = Math.floor(Math.random() * mottos.value.length)
+  }
+}
+
+async function loadMottos() {
+  try {
+    mottos.value = await mottoApi.list()
+  } catch (e) {
+    console.error('加载名言失败:', e)
+  }
 }
 
 onMounted(async () => {
+  // 启动定时器，每秒更新时间
+  timer = setInterval(() => {
+    currentTime.value = new Date()
+  }, 1000)
+  
   try {
     const [todoRes, noteRes, dateRes] = await Promise.all([
       todoApi.list(),
@@ -203,6 +216,13 @@ onMounted(async () => {
   } catch (e) {
     console.error(e)
   }
+  
+  // 加载名言
+  await loadMottos()
+})
+
+onUnmounted(() => {
+  if (timer) clearInterval(timer)
 })
 </script>
 
@@ -216,11 +236,11 @@ onMounted(async () => {
 
 .page-body {
   flex: 1;
-  overflow: hidden;
-  padding: 24px 28px 28px;
-  /* max-width: 880px; */
+  overflow: auto;
+  padding: 24px 28px 5px;
   display: flex;
   flex-direction: column;
+  gap: 20px;
 }
 
 /* ═══════════ Hero ═══════════ */
@@ -228,14 +248,19 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 28px;
+  padding: 20px 0;
+}
+
+.hero-left {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .greeting {
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 700;
   letter-spacing: -0.5px;
-  margin-bottom: 4px;
 }
 
 .hero-date {
@@ -245,122 +270,101 @@ onMounted(async () => {
 
 .hero-right {
   display: flex;
-  gap: 12px;
-}
-
-.stat-pill {
-  display: flex;
   align-items: center;
-  gap: 6px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 6px 14px;
 }
 
-.stat-pill-num {
-  font-size: 18px;
+.countdown {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.countdown-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.countdown-time {
+  font-size: 28px;
   font-weight: 700;
   color: var(--accent);
   font-family: var(--mono);
+  letter-spacing: 2px;
 }
 
-.stat-pill-label {
-  font-size: 12px;
-  color: var(--text-muted);
+.countdown.done .countdown-label {
+  font-size: 16px;
+  color: var(--green);
 }
 
-/* ═══════════ Section Title ═══════════ */
-.section-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-bottom: 12px;
-}
-
-/* ═══════════ Quick Grid ═══════════ */
-.quick-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin-bottom: 28px;
-}
-
-.quick-card {
+.hero-right {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
   background: var(--bg-surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  cursor: pointer;
-  transition: all 0.2s;
-  text-align: left;
-  color: var(--text);
-  font-family: var(--font);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
 }
 
-.quick-card:hover {
-  border-color: var(--accent);
-  background: var(--accent-bg);
-  transform: translateY(-2px);
+/* ═══════════ Stats Bar ═══════════ */
+.stats-bar {
+  display: flex;
+  gap: 16px;
 }
 
-.qc-icon {
-  font-size: 24px;
-  flex-shrink: 0;
-}
-
-.qc-text {
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   flex: 1;
-  min-width: 0;
 }
 
-.qc-label {
-  font-size: 14px;
-  font-weight: 600;
-  margin-bottom: 2px;
+.stat-icon {
+  font-size: 16px;
 }
 
-.qc-desc {
-  font-size: 12px;
-  color: var(--text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.stat-label {
+  font-size: 13px;
+  color: var(--text-sec);
 }
 
-.qc-arrow {
-  color: var(--text-muted);
-  flex-shrink: 0;
-  transition: transform 0.2s;
+.stat-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  font-family: var(--mono);
+  margin-left: auto;
 }
 
-.quick-card:hover .qc-arrow {
-  transform: translateX(3px);
-  color: var(--accent);
-}
-
-/* ═══════════ Content Grid ═══════════ */
-.content-grid {
+/* ═══════════ Main Content ═══════════ */
+.main-content {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
   flex: 1;
-  min-height: 0;
+  min-height: 200px;
 }
 
-.panel {
+.content-panel {
   background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  min-height: 0;
 }
 
 .panel-header {
@@ -401,7 +405,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 16px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--border);
 }
 
@@ -438,7 +442,7 @@ onMounted(async () => {
 
 /* ═══════════ Note Rows ═══════════ */
 .note-row {
-  padding: 10px 16px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--border);
   cursor: pointer;
   transition: background 0.15s;
@@ -455,10 +459,8 @@ onMounted(async () => {
 .note-title {
   font-size: 13px;
   font-weight: 600;
-  margin-bottom: 2px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  margin-bottom: 4px;
+  color: var(--text);
 }
 
 .note-preview {
@@ -467,13 +469,6 @@ onMounted(async () => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-bottom: 4px;
-}
-
-.note-date {
-  font-size: 11px;
-  color: var(--text-muted);
-  font-family: var(--mono);
 }
 
 /* ═══════════ Empty ═══════════ */
@@ -497,20 +492,66 @@ onMounted(async () => {
   font-size: 13px;
 }
 
+/* ═══════════ Motto ═══════════ */
+.motto-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 24px;
+  flex-shrink: 0;
+}
+
+.motto-text {
+  font-size: 14px;
+  color: var(--text-sec);
+  font-style: italic;
+  line-height: 1.6;
+}
+
+.motto-refresh {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.motto-refresh:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.motto-refresh:active {
+  transform: rotate(180deg);
+}
+
 /* ═══════════ Responsive ═══════════ */
 @media (max-width: 768px) {
-  .hero {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
+  .stats-bar {
+    flex-wrap: wrap;
   }
 
-  .quick-grid {
-    grid-template-columns: 1fr;
+  .stat-item {
+    flex: 1 1 calc(50% - 16px);
+    min-width: 0;
   }
 
-  .content-grid {
+  .main-content {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .stat-item {
+    flex: 1 1 100%;
   }
 }
 </style>
