@@ -30,12 +30,18 @@
               </div>
               <div class="setting-row">
                 <span class="setting-label">版本号</span>
-                <span class="setting-value">v0.2.1</span>
+                <span class="setting-value">v0.2.2</span>
               </div>
               <!-- <div class="setting-row">
                 <span class="setting-label">技术栈</span>
                 <span class="setting-value">Tauri 2 + Vue 3</span>
               </div> -->
+              <div class="setting-row">
+                <span class="setting-label">GitHub</span>
+                <a class="setting-link" href="https://github.com/Cuixiaoboo/Gnothi" target="_blank"
+                  >github.com/Cuixiaoboo/Gnothi</a
+                >
+              </div>
             </div>
           </div>
 
@@ -122,9 +128,9 @@
             </div>
           </div>
 
-          <!-- 摸鱼名言 -->
+          <!-- 金句 -->
           <div v-if="activeSection === 'mottos'" class="content-section">
-            <!-- <h3>摸鱼名言</h3> -->
+            <!-- <h3>金句</h3> -->
             <div class="settings-card">
               <div class="motto-add-row">
                 <input
@@ -135,7 +141,15 @@
                   @keyup.enter="addMotto"
                 />
                 <button class="motto-add-btn" @click="addMotto" :disabled="!newMotto.trim()">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                  >
                     <line x1="12" y1="5" x2="12" y2="19" />
                     <line x1="5" y1="12" x2="19" y2="12" />
                   </svg>
@@ -152,19 +166,56 @@
                     @keyup.esc="cancelEdit"
                   />
                   <div class="motto-actions">
-                    <button v-if="editingId !== motto.id" class="motto-action-btn" @click="startEdit(motto)" title="编辑">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <button
+                      v-if="editingId !== motto.id"
+                      class="motto-action-btn"
+                      @click="startEdit(motto)"
+                      title="编辑"
+                    >
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      >
                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                       </svg>
                     </button>
-                    <button v-else class="motto-action-btn save" @click="saveEdit(motto.id)" title="保存">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <button
+                      v-else
+                      class="motto-action-btn save"
+                      @click="saveEdit(motto.id)"
+                      title="保存"
+                    >
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
                         <polyline points="20 6 9 17 4 12" />
                       </svg>
                     </button>
-                    <button class="motto-action-btn delete" @click="deleteMotto(motto.id)" title="删除">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <button
+                      class="motto-action-btn delete"
+                      @click="deleteMotto(motto.id)"
+                      title="删除"
+                    >
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      >
                         <polyline points="3 6 5 6 21 6" />
                         <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
                       </svg>
@@ -201,7 +252,7 @@ const sections = [
   { id: 'appearance', label: '外观' },
   { id: 'data', label: '数据' },
   { id: 'worktime', label: '工作时间' },
-  { id: 'mottos', label: '摸鱼名言' },
+  { id: 'mottos', label: '金句' },
 ]
 
 onMounted(async () => {
@@ -210,12 +261,12 @@ onMounted(async () => {
     currentTheme.value = savedTheme
     applyTheme(savedTheme)
   }
-  
+
   const savedTime = localStorage.getItem('workEndTime')
   if (savedTime) {
     workEndTime.value = savedTime
   }
-  
+
   await loadMottos()
 })
 
@@ -390,7 +441,7 @@ function saveWorkEndTime() {
   overflow: visible;
 }
 
-/* 摸鱼名言卡片铺满 */
+/* 金句卡片铺满 */
 .content-section:has(.motto-add-row) {
   height: 100%;
 }
@@ -427,6 +478,18 @@ function saveWorkEndTime() {
 .setting-value.mono {
   font-family: var(--mono);
   font-size: 12px;
+}
+
+.setting-link {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.setting-link:hover {
+  color: var(--accent);
+  text-decoration: underline;
 }
 
 .setting-control {

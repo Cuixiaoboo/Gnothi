@@ -87,11 +87,19 @@
         </div>
       </div>
 
-      <!-- 摸鱼名言 -->
+      <!-- 金句 -->
       <div class="motto-section">
         <div class="motto-text">{{ currentMotto.text }}</div>
         <button class="motto-refresh" @click="refreshMotto" title="换一条">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+          >
             <polyline points="23 4 23 10 17 10" />
             <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
           </svg>
@@ -153,22 +161,24 @@ const workEndHour = computed(() => {
 const isAfterWork = computed(() => {
   const now = currentTime.value
   const end = workEndHour.value
-  return now.getHours() > end.hour || (now.getHours() === end.hour && now.getMinutes() >= end.minute)
+  return (
+    now.getHours() > end.hour || (now.getHours() === end.hour && now.getMinutes() >= end.minute)
+  )
 })
 
 // 倒计时文本
 const countdownText = computed(() => {
   const now = currentTime.value
   const end = workEndHour.value
-  
-  let diff = (end.hour * 60 + end.minute) - (now.getHours() * 60 + now.getMinutes())
-  
+
+  let diff = end.hour * 60 + end.minute - (now.getHours() * 60 + now.getMinutes())
+
   if (diff <= 0) return '00:00:00'
-  
+
   const hours = Math.floor(diff / 60)
   const minutes = diff % 60
   const seconds = 59 - now.getSeconds()
-  
+
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
 })
 
@@ -179,7 +189,7 @@ function statusLabel(s) {
   return { hangup: '挂起', pending: '待处理', in_progress: '进行中', completed: '已完成' }[s] || s
 }
 
-// 摸鱼名言
+// 金句
 const mottos = ref([])
 const mottoIndex = ref(Math.floor(Date.now() / 86400000))
 
@@ -210,7 +220,7 @@ onMounted(async () => {
   timer = setInterval(() => {
     currentTime.value = new Date()
   }, 1000)
-  
+
   try {
     const [todoRes, noteRes, dateRes] = await Promise.all([
       todoApi.list(),
@@ -223,7 +233,7 @@ onMounted(async () => {
   } catch (e) {
     console.error(e)
   }
-  
+
   // 加载名言
   await loadMottos()
 })
