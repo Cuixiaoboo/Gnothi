@@ -51,7 +51,7 @@
             <button class="panel-link" @click="$router.push({ name: 'todo' })">查看全部</button>
           </div>
           <div class="panel-body" v-if="pendingTodos.length > 0">
-            <div class="todo-row" v-for="t in pendingTodos.slice(0, 5)" :key="t.id">
+            <div class="todo-row" v-for="t in pendingTodos.slice(0, 10)" :key="t.id">
               <span class="todo-dot" :class="'dot-' + t.priority"></span>
               <span class="todo-text">{{ t.title }}</span>
               <span class="badge" :class="'badge-' + t.status">{{ statusLabel(t.status) }}</span>
@@ -69,10 +69,10 @@
             <div class="panel-title">最近笔记</div>
             <button class="panel-link" @click="$router.push({ name: 'notes' })">查看全部</button>
           </div>
-          <div class="panel-body" v-if="notes.length > 0">
+          <div class="panel-body" v-if="sortedNotes.length > 0">
             <div
               class="note-row"
-              v-for="n in notes.slice(0, 5)"
+              v-for="n in sortedNotes.slice(0, 10)"
               :key="n.id"
               @click="$router.push({ name: 'notes', query: { id: n.id } })"
             >
@@ -114,6 +114,13 @@ const currentTime = ref(new Date())
 const workEndTime = ref(localStorage.getItem('workEndTime') || '18:00')
 
 const pendingTodos = computed(() => todos.value.filter((t) => t.status !== 'completed'))
+
+// 按创建时间倒序排列的笔记
+const sortedNotes = computed(() => {
+  return [...notes.value].sort((a, b) => {
+    return new Date(b.created_at) - new Date(a.created_at)
+  })
+})
 
 const weekdays = ['日', '一', '二', '三', '四', '五', '六']
 
