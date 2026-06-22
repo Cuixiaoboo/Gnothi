@@ -95,9 +95,20 @@ const editor = useEditor({
 // 监听外部内容变化，只在外部更新时设置内容
 watch(() => props.modelValue, (newContent) => {
   if (editor.value && !isInternalUpdate) {
-    editor.value.commands.setContent(newContent, false)
+    // 只有当内容真正变化时才设置
+    const currentContent = editor.value.getJSON()
+    if (JSON.stringify(currentContent) !== JSON.stringify(newContent)) {
+      editor.value.commands.setContent(newContent, false)
+    }
   }
 }, { deep: true })
+
+// 自动聚焦
+onMounted(() => {
+  if (editor.value) {
+    editor.value.commands.focus()
+  }
+})
 
 onUnmounted(() => {
   editor.value?.destroy()

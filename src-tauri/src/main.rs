@@ -56,7 +56,7 @@ struct DailyReport {
 }
 
 fn now_str() -> String {
-    chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string()
+    chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string()
 }
 
 // ========== 笔记命令 ==========
