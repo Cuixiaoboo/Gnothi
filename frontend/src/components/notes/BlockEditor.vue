@@ -30,7 +30,7 @@
       <button
         class="menu-btn"
         :class="{ active: editor.isActive('codeBlock') }"
-        @click="editor.chain().focus().toggleCodeBlock().run()"
+        @click="wrapInCodeBlock"
         title="代码块"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -69,6 +69,39 @@ const emit = defineEmits(['update:modelValue'])
 
 let isInternalUpdate = false
 
+// 将选中的多行文本合并到一个代码块
+function wrapInCodeBlock() {
+  if (!editor.value) return
+  
+  const { state } = editor.value
+  const { selection } = state
+  const { from, to } = selection
+  
+  // 如果有选区
+  if (from !== to) {
+    // 获取选中的文本
+    const selectedText = state.doc.textBetween(from, to, '\n')
+    
+    // 删除选中内容
+    editor.value.chain()
+      .focus()
+      .deleteSelection()
+      .run()
+    
+    // 插入一个代码块，包含所有文本
+    editor.value.chain()
+      .focus()
+      .insertContent({
+        type: 'codeBlock',
+        content: [{ type: 'text', text: selectedText }]
+      })
+      .run()
+  } else {
+    // 没有选区，直接切换代码块
+    editor.value.chain().focus().toggleCodeBlock().run()
+  }
+}
+
 const editor = useEditor({
   content: props.modelValue,
   extensions: [
@@ -85,6 +118,65 @@ const editor = useEditor({
       defaultLanguage: 'plaintext'
     })
   ],
+  editorProps: {
+    handlePaste: (view, event) => {
+      // 获取粘贴的纯文本
+      const text = event.clipboardData?.getData('text/plain')
+      if (!text) return false
+      
+      // 清理多余的空行（将连续的换行符合并为单个）
+      const cleanedText = text.replace(/\n\n+/g, '\n')
+      
+      // 如果文本被清理过，手动插入
+      if (cleanedText !== text) {
+        event.preventDefault()
+        const { state } = view
+        const { from, to } = state.selection
+        
+        // 插入清理后的文本
+        view.dispatch(
+          state.tr.insertText(cleanedText, from, to)
+        )
+        return true
+      }
+      
+      return false
+    },
+    transformPastedHTML: (html) => {
+      // 清理 HTML 中多余的空行
+      // 移除空的 <p> 标签
+      let cleaned = html.replace(/<p>\s*<\/p>/g, '')
+      // 移除 <p> 标签之间的 <br>
+      cleaned = cleaned.replace(/<\/p>\s*<br\s*\/?>\s*<p>/g, '</p><p>')
+      // 移除连续的 <br>
+      cleaned = cleaned.replace(/(<br\s*\/?>){2,}/g, '<br>')
+      return cleaned
+    },
+    clipboardTextSerializer: (slice) => {
+      // 自定义复制时的纯文本格式
+      const lines = []
+      
+      slice.content.forEach((node) => {
+        if (node.type.name === 'paragraph') {
+          // 段落内容，提取文本
+          const text = node.textContent
+          lines.push(text)
+        } else if (node.type.name === 'codeBlock') {
+          // 代码块，保留内容
+          lines.push(node.textContent)
+        } else if (node.type.name === 'heading') {
+          // 标题，提取文本
+          lines.push(node.textContent)
+        } else {
+          // 其他类型，提取文本
+          lines.push(node.textContent)
+        }
+      })
+      
+      // 用单个换行符连接，不添加额外空行
+      return lines.join('\n')
+    }
+  },
   onUpdate: ({ editor }) => {
     isInternalUpdate = true
     emit('update:modelValue', editor.getJSON())
