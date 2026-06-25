@@ -314,6 +314,44 @@ select {
   --sh-punctuation: #5a6470;
 }
 
+/* ═══════════════════ CORAL THEME ═══════════════════ */
+[data-theme="coral"] {
+  --bg: #FDF6EC;
+  --bg-sidebar: #FCF1E4;
+  --bg-surface: #FFFBF3;
+  --bg-surface-2: #F5EDE0;
+  --bg-hover: #EDE5D8;
+  --bg-active: #E5DDD0;
+  --border: #E0D5C5;
+  --border-light: #D5CAB8;
+  --text: #1A3049;
+  --text-sec: #314153;
+  --text-muted: #727F89;
+  --accent: #F37E63;
+  --accent-hover: #E06E53;
+  --accent-bg: rgba(243, 126, 99, 0.1);
+  --green: #6E8C7A;
+  --green-bg: rgba(110, 140, 122, 0.12);
+  --yellow: #C49A6A;
+  --yellow-bg: rgba(196, 154, 106, 0.12);
+  --red: #A3483B;
+  --red-bg: rgba(163, 72, 59, 0.12);
+  --blue: #5B8BA0;
+  --blue-bg: rgba(91, 139, 160, 0.12);
+  --purple: #8A6FA0;
+  --purple-bg: rgba(138, 111, 160, 0.12);
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+
+  /* 语法高亮 */
+  --sh-key: #A3483B;
+  --sh-string: #6E8C7A;
+  --sh-number: #C49A6A;
+  --sh-boolean: #5B8BA0;
+  --sh-null: #8A6FA0;
+  --sh-bracket: #727F89;
+  --sh-punctuation: #727F89;
+}
+
 /* ═══════════════════ LIGHT THEME ═══════════════════ */
 [data-theme="light"] {
   --bg: #f5f5f5;

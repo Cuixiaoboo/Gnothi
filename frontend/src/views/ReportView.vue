@@ -1,7 +1,7 @@
 <template>
   <div class="view-wrapper">
     <div class="page-header">
-      <div class="page-title">随手小记</div>
+      <div class="page-title">搬砖日报</div>
       <div class="save-indicator" :class="saveStatus">
         <template v-if="saveStatus === 'saving'">● 保存中...</template>
         <template v-else-if="saveStatus === 'saved'">✓ 已保存</template>

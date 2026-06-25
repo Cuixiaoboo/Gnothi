@@ -1,6 +1,6 @@
 {
   "identifier": "com.gnothi.app",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "productName": "Gnothi",
   "build": {
     "beforeDevCommand": "npm --prefix ./frontend run dev",

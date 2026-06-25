@@ -1,7 +1,7 @@
 <template>
   <div class="view-wrapper">
     <div class="page-header">
-      <div class="page-title">工具箱</div>
+      <div class="page-title">百宝箱</div>
     </div>
     <div class="page-body">
       <div class="tools-layout">

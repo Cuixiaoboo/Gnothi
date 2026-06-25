@@ -9,7 +9,7 @@ function setTheme(t) {
 }
 
 function toggleTheme() {
-  const themes = ['dark', 'gray', 'light']
+  const themes = ['dark', 'gray', 'light', 'coral']
   const idx = themes.indexOf(theme.value)
   setTheme(themes[(idx + 1) % themes.length])
 }

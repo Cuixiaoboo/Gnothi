@@ -3,6 +3,7 @@ import HomeView from '../views/HomeView.vue'
 import ReportView from '../views/ReportView.vue'
 import TodoView from '../views/TodoView.vue'
 import NotesView from '../views/NotesView.vue'
+import DiaryView from '../views/DiaryView.vue'
 import SettingsView from '../views/SettingsView.vue'
 import ToolsView from '../views/ToolsView.vue'
 
@@ -11,6 +12,7 @@ const routes = [
   { path: '/report', name: 'report', component: ReportView },
   { path: '/todo', name: 'todo', component: TodoView },
   { path: '/notes', name: 'notes', component: NotesView },
+  { path: '/diary', name: 'diary', component: DiaryView },
   { path: '/tools', name: 'tools', component: ToolsView },
   { path: '/settings', name: 'settings', component: SettingsView },
 ]

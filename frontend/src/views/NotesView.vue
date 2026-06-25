@@ -1,7 +1,7 @@
 <template>
   <div class="view-wrapper">
     <div class="page-header">
-      <div class="page-title">个人笔记</div>
+      <div class="page-title">随手小记</div>
       <button class="btn btn-primary btn-sm" @click="addNote">
         <svg
           width="14"
