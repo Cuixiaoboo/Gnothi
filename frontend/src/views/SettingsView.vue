@@ -92,6 +92,20 @@
                   </div>
                   <span class="theme-name">浅色</span>
                 </button>
+                <button
+                  class="theme-option"
+                  :class="{ active: currentTheme === 'coral' }"
+                  @click="setTheme('coral')"
+                >
+                  <div class="theme-preview coral-preview">
+                    <div class="preview-bar"></div>
+                    <div class="preview-content">
+                      <div class="preview-line"></div>
+                      <div class="preview-line short"></div>
+                    </div>
+                  </div>
+                  <span class="theme-name">珊瑚</span>
+                </button>
               </div>
             </div>
           </div>
@@ -586,6 +600,20 @@ function saveWorkEndTime() {
 
 .light-preview .preview-line {
   background: #e0e0e0;
+}
+
+.coral-preview {
+  background: #FDF6EC;
+  border: 1px solid #E0D5C5;
+}
+
+.coral-preview .preview-bar {
+  background: #FCF1E4;
+  border-bottom: 1px solid #E0D5C5;
+}
+
+.coral-preview .preview-line {
+  background: #E0D5C5;
 }
 
 .preview-line.short {
