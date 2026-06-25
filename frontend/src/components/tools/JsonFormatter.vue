@@ -10,8 +10,8 @@
       </div>
     </div>
 
-    <div class="json-body">
-      <div class="json-input">
+    <div class="json-body" ref="jsonBodyRef">
+      <div class="json-input" ref="inputPanelRef">
         <div class="panel-header">
           <span>输入</span>
           <span class="info-msg" v-if="isExtractInfo">{{ error }}</span>
@@ -26,14 +26,23 @@
         ></textarea>
       </div>
 
-      <div class="json-output">
+      <div class="resize-handle" @mousedown="startResize">
+        <div class="resize-line"></div>
+      </div>
+
+      <div class="json-output" ref="outputPanelRef">
         <div class="panel-header">
           <span>输出</span>
           <span class="copy-msg" v-if="copied">已复制!</span>
         </div>
-        <pre v-if="output"><code>{{ output }}</code></pre>
-        <div class="empty-output" v-else>
-          <span>格式化后的 JSON 将显示在这里</span>
+        <div class="json-viewer-container">
+          <!-- 格式化（带层级展开）走 CodeMirror -->
+          <CmJsonViewer v-if="showFormatted && output" :value="parsedOutput" :expand-depth="3" />
+          <!-- 压缩（纯文本）走语法高亮 -->
+          <pre v-else-if="output" class="json-text-output"><code v-html="highlightedOutput"></code></pre>
+          <div v-else class="empty-output-inner">
+            <span>格式化后的 JSON 将显示在这里</span>
+          </div>
         </div>
       </div>
     </div>
@@ -48,6 +57,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
+import CmJsonViewer from './CmJsonViewer.vue'
 
 const STORAGE_KEY = 'json-formatter-input'
 
@@ -56,6 +66,110 @@ const output = ref('')
 const error = ref('')
 const copied = ref(false)
 const isExtractInfo = ref(false)
+const showFormatted = ref(true)
+const jsonBodyRef = ref(null)
+const inputPanelRef = ref(null)
+const outputPanelRef = ref(null)
+
+// 拖拽调整左右面板宽度
+function startResize(e) {
+  e.preventDefault()
+  const startX = e.clientX
+  const body = jsonBodyRef.value
+  const left = inputPanelRef.value
+  const right = outputPanelRef.value
+  if (!body || !left || !right) return
+  
+  const bodyWidth = body.getBoundingClientRect().width
+  const leftWidth = left.getBoundingClientRect().width
+  
+  // 切换为固定宽度模式
+  left.style.flex = 'none'
+  right.style.flex = '1'
+  left.style.width = leftWidth + 'px'
+  
+  function onMouseMove(ev) {
+    let newWidth = leftWidth + (ev.clientX - startX)
+    newWidth = Math.max(bodyWidth * 0.2, Math.min(bodyWidth * 0.8, newWidth))
+    left.style.width = newWidth + 'px'
+  }
+  
+  function onMouseUp() {
+    document.removeEventListener('mousemove', onMouseMove)
+    document.removeEventListener('mouseup', onMouseUp)
+    document.body.style.cursor = ''
+    document.body.style.userSelect = ''
+    // 将固定宽度转为弹性比例
+    const finalWidth = parseFloat(left.style.width)
+    if (finalWidth > 0) {
+      const pct = (finalWidth / bodyWidth) * 100
+      left.style.flex = `0 0 ${pct}%`
+      left.style.width = ''
+      right.style.flex = `0 0 ${100 - pct}%`
+    }
+  }
+  
+  document.addEventListener('mousemove', onMouseMove)
+  document.addEventListener('mouseup', onMouseUp)
+  document.body.style.cursor = 'col-resize'
+  document.body.style.userSelect = 'none'
+}
+
+// JSON 语法高亮
+function syntaxHighlight(json) {
+  if (typeof json !== 'string') {
+    json = JSON.stringify(json, null, 2)
+  }
+  
+  // 转义 HTML 特殊字符
+  json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  
+  // 高亮 JSON 语法
+  return json.replace(
+    /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+    function (match) {
+      let cls = 'json-number'
+      if (/^"/.test(match)) {
+        if (/:$/.test(match)) {
+          cls = 'json-key'
+        } else {
+          cls = 'json-string'
+        }
+      } else if (/true|false/.test(match)) {
+        cls = 'json-boolean'
+      } else if (/null/.test(match)) {
+        cls = 'json-null'
+      }
+      return '<span class="' + cls + '">' + match + '</span>'
+    }
+  )
+}
+
+// 高亮后的输出
+const highlightedOutput = computed(() => {
+  if (!output.value) return ''
+  return syntaxHighlight(output.value)
+})
+
+// 解析后的输出（用于树形视图）
+const parsedOutput = computed(() => {
+  if (!output.value) return null
+  // 如果是纯 JSON，直接解析
+  try {
+    return JSON.parse(output.value)
+  } catch {
+    // 如果是混合内容，尝试提取第一个 JSON 块
+    const match = output.value.match(/^[\s\S]*?(\{[\s\S]*\}|\[[\s\S]*\])/)
+    if (match) {
+      try {
+        return JSON.parse(match[1])
+      } catch {
+        return null
+      }
+    }
+    return null
+  }
+})
 
 // 从 localStorage 读取上次的内容
 onMounted(() => {
@@ -87,6 +201,7 @@ function validate() {
     error.value = ''
     // 自动格式化展示
     output.value = JSON.stringify(obj, null, 2)
+    showFormatted.value = true
     return
   } catch {
     // 直接解析失败，尝试提取 JSON
@@ -94,6 +209,7 @@ function validate() {
 
   // 提取 JSON
   extractJsonFromText(input.value)
+  showFormatted.value = true
 }
 
 // 尝试修复并格式化 JSON
@@ -192,6 +308,7 @@ function format() {
     const obj = JSON.parse(input.value)
     output.value = JSON.stringify(obj, null, 2)
     error.value = ''
+    showFormatted.value = true
     return
   } catch {
     // 直接解析失败，尝试提取 JSON
@@ -199,6 +316,7 @@ function format() {
 
   // 提取 JSON
   extractJsonFromText(input.value)
+  showFormatted.value = true
 }
 
 // 压缩
@@ -211,6 +329,7 @@ function compress() {
     const obj = JSON.parse(input.value)
     output.value = JSON.stringify(obj)
     error.value = ''
+    showFormatted.value = false
     return
   } catch {
     // 直接解析失败，尝试提取 JSON
@@ -218,6 +337,7 @@ function compress() {
 
   // 提取并压缩，保留完整文本结构
   extractJsonFromText(input.value, true)
+  showFormatted.value = false
 }
 
 // 复制
@@ -421,6 +541,32 @@ function extractJsonFromText(text, compressMode = false) {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  min-width: 0;
+}
+
+.resize-handle {
+  width: 6px;
+  cursor: col-resize;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 10;
+}
+
+.resize-handle:hover .resize-line,
+.resize-handle:active .resize-line {
+  background: var(--accent);
+}
+
+.resize-line {
+  width: 2px;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--border);
+  transition: background 0.15s;
+  min-height: 40px;
 }
 
 .panel-header {
@@ -513,6 +659,24 @@ function extractJsonFromText(text, compressMode = false) {
   font-size: 13px;
 }
 
+.empty-output-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.json-viewer-container {
+  flex: 1;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 0 0 var(--radius) var(--radius);
+  background: var(--bg);
+  padding: 12px;
+}
+
 .json-footer {
   padding: 8px 16px;
   border-top: 1px solid var(--border);
@@ -527,4 +691,13 @@ function extractJsonFromText(text, compressMode = false) {
     flex-direction: column;
   }
 }
+</style>
+
+<style>
+/* 压缩模式语法高亮（非 scoped，适配 v-html） */
+.json-text-output .json-key { color: var(--sh-key, #e06c75); }
+.json-text-output .json-string { color: var(--sh-string, #98c379); }
+.json-text-output .json-number { color: var(--sh-number, #d19a66); }
+.json-text-output .json-boolean { color: var(--sh-boolean, #56b6c2); }
+.json-text-output .json-null { color: var(--sh-null, #c678dd); }
 </style>
