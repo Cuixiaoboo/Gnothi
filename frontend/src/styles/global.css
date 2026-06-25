@@ -36,6 +36,15 @@ body {
   --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --mono: 'DM Mono', 'Menlo', monospace;
   --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  
+  /* 语法高亮 */
+  --sh-key: #e06c75;
+  --sh-string: #98c379;
+  --sh-number: #d19a66;
+  --sh-boolean: #56b6c2;
+  --sh-null: #c678dd;
+  --sh-bracket: #606060;
+  --sh-punctuation: #606060;
 }
 
 /* ═══════════════════ RESET ═══════════════════ */
@@ -294,6 +303,15 @@ select {
   --purple: #a78bfa;
   --purple-bg: rgba(167, 139, 250, 0.12);
   --shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+
+  /* 语法高亮 */
+  --sh-key: #c87b8a;
+  --sh-string: #7db67a;
+  --sh-number: #c49a6a;
+  --sh-boolean: #5aa5b0;
+  --sh-null: #b086c9;
+  --sh-bracket: #5a6470;
+  --sh-punctuation: #5a6470;
 }
 
 /* ═══════════════════ LIGHT THEME ═══════════════════ */
@@ -323,4 +341,13 @@ select {
   --purple: #6366f1;
   --purple-bg: rgba(99, 102, 241, 0.08);
   --shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+
+  /* 语法高亮 */
+  --sh-key: #c44d58;
+  --sh-string: #5a8f5c;
+  --sh-number: #b8854a;
+  --sh-boolean: #3a8b96;
+  --sh-null: #8a5fa8;
+  --sh-bracket: #999999;
+  --sh-punctuation: #999999;
 }

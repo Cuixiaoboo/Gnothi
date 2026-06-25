@@ -30,7 +30,7 @@
               </div>
               <div class="setting-row">
                 <span class="setting-label">版本号</span>
-                <span class="setting-value">v0.2.2</span>
+                <span class="setting-value">v0.2.3</span>
               </div>
               <!-- <div class="setting-row">
                 <span class="setting-label">技术栈</span>
