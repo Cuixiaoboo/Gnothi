@@ -33,3 +33,12 @@ export const mottoApi = {
   update: (id, content) => invoke('update_motto', { id, content }),
   delete: (id) => invoke('delete_motto', { id }),
 }
+
+// ── 朝花夕拾 ──
+export const diaryApi = {
+  list: (limit) => invoke('get_diaries', { limit }),
+  get: (date) => invoke('get_diary', { date }),
+  create: (data) => invoke('create_diary', data),
+  update: (id, data) => invoke('update_diary', { id, ...data }),
+  delete: (id) => invoke('delete_diary', { id }),
+}

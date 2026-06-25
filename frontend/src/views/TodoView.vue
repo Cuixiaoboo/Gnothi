@@ -1,7 +1,7 @@
 <template>
   <div class="view-wrapper">
     <div class="page-header">
-      <div class="page-title">待办事项</div>
+      <div class="page-title">征服清单</div>
       <span class="count">{{ filteredTodos.length }} 项</span>
     </div>
     <div class="page-body">
@@ -21,7 +21,7 @@
           />
           <div class="empty" v-if="filteredTodos.length === 0">
             <div class="empty-icon">✅</div>
-            <p>{{ filter === 'all' ? '暂无待办事项' : '没有符合条件的待办' }}</p>
+            <p>{{ filter === 'all' ? '暂无征服清单' : '没有符合条件的待办' }}</p>
           </div>
         </div>
       </div>

@@ -55,6 +55,19 @@ struct DailyReport {
     updated_at: String,
 }
 
+// 朝花夕拾模型
+#[derive(Debug, Serialize, Deserialize)]
+struct Diary {
+    id: i32,
+    date: String,
+    content: String,
+    mood: String,
+    weather: String,
+    is_private: bool,
+    created_at: String,
+    updated_at: String,
+}
+
 fn now_str() -> String {
     chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string()
 }
@@ -437,6 +450,169 @@ fn delete_report(state: State<DbState>, date: String) -> Result<bool, String> {
     Ok(true)
 }
 
+// ========== 朝花夕拾命令 ==========
+
+#[tauri::command]
+fn get_diaries(state: State<DbState>, limit: Option<i32>) -> Result<Vec<Diary>, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let sql = match limit {
+        Some(l) => format!("SELECT id, date, content, mood, weather, is_private, created_at, updated_at FROM diaries ORDER BY date DESC LIMIT {}", l),
+        None => "SELECT id, date, content, mood, weather, is_private, created_at, updated_at FROM diaries ORDER BY date DESC".to_string(),
+    };
+    let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
+
+    let diaries = stmt
+        .query_map([], |row| {
+            let is_private: i32 = row.get(5)?;
+            Ok(Diary {
+                id: row.get(0)?,
+                date: row.get(1)?,
+                content: row.get(2)?,
+                mood: row.get(3)?,
+                weather: row.get(4)?,
+                is_private: is_private != 0,
+                created_at: row.get(6)?,
+                updated_at: row.get(7)?,
+            })
+        })
+        .map_err(|e| e.to_string())?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())?;
+
+    Ok(diaries)
+}
+
+#[tauri::command]
+fn get_diary(state: State<DbState>, date: String) -> Result<Diary, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    conn.query_row(
+        "SELECT id, date, content, mood, weather, is_private, created_at, updated_at FROM diaries WHERE date = ?1",
+        [&date],
+        |row| {
+            let is_private: i32 = row.get(5)?;
+            Ok(Diary {
+                id: row.get(0)?,
+                date: row.get(1)?,
+                content: row.get(2)?,
+                mood: row.get(3)?,
+                weather: row.get(4)?,
+                is_private: is_private != 0,
+                created_at: row.get(6)?,
+                updated_at: row.get(7)?,
+            })
+        },
+    )
+    .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn create_diary(
+    state: State<DbState>,
+    date: String,
+    content: String,
+    mood: String,
+    weather: String,
+    is_private: bool,
+) -> Result<Diary, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    let now = now_str();
+    let private_val = if is_private { 1 } else { 0 };
+
+    conn.execute(
+        "INSERT INTO diaries (date, content, mood, weather, is_private, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+        params![date, content, mood, weather, private_val, now, now],
+    )
+    .map_err(|e| e.to_string())?;
+
+    let id = conn.last_insert_rowid() as i32;
+    info!("创建朝花夕拾: [{}] {}", id, date);
+
+    Ok(Diary {
+        id,
+        date,
+        content,
+        mood,
+        weather,
+        is_private,
+        created_at: now.clone(),
+        updated_at: now,
+    })
+}
+
+#[tauri::command]
+fn update_diary(
+    state: State<DbState>,
+    id: i32,
+    content: Option<String>,
+    mood: Option<String>,
+    weather: Option<String>,
+    is_private: bool,
+) -> Result<Diary, String> {
+    let now = now_str();
+
+    {
+        let conn = state.conn.lock().map_err(|e| e.to_string())?;
+        let mut sql = String::from("UPDATE diaries SET updated_at = ?1");
+        let mut params_vec: Vec<Box<dyn rusqlite::types::ToSql>> = vec![Box::new(now.clone())];
+        let mut idx = 2u32;
+
+        if let Some(ref c) = content {
+            sql += &format!(", content = ?{}", idx);
+            params_vec.push(Box::new(c.clone()));
+            idx += 1;
+        }
+        if let Some(ref m) = mood {
+            sql += &format!(", mood = ?{}", idx);
+            params_vec.push(Box::new(m.clone()));
+            idx += 1;
+        }
+        if let Some(ref w) = weather {
+            sql += &format!(", weather = ?{}", idx);
+            params_vec.push(Box::new(w.clone()));
+            idx += 1;
+        }
+        sql += &format!(", is_private = ?{}", idx);
+        params_vec.push(Box::new(if is_private { 1i32 } else { 0i32 }));
+        idx += 1;
+
+        sql += &format!(" WHERE id = ?{}", idx);
+        params_vec.push(Box::new(id));
+
+        conn.execute(&sql, rusqlite::params_from_iter(params_vec.iter().map(|p| p.as_ref())))
+            .map_err(|e| e.to_string())?;
+    }
+
+    // Re-read the updated diary
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    conn.query_row(
+        "SELECT id, date, content, mood, weather, is_private, created_at, updated_at FROM diaries WHERE id = ?1",
+        [id],
+        |row| {
+            let is_private: i32 = row.get(5)?;
+            Ok(Diary {
+                id: row.get(0)?,
+                date: row.get(1)?,
+                content: row.get(2)?,
+                mood: row.get(3)?,
+                weather: row.get(4)?,
+                is_private: is_private != 0,
+                created_at: row.get(6)?,
+                updated_at: row.get(7)?,
+            })
+        },
+    )
+    .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn delete_diary(state: State<DbState>, id: i32) -> Result<bool, String> {
+    let conn = state.conn.lock().map_err(|e| e.to_string())?;
+    conn.execute("DELETE FROM diaries WHERE id = ?1", [id])
+        .map_err(|e| e.to_string())?;
+    info!("删除朝花夕拾: [{}]", id);
+    Ok(true)
+}
+
 // ========== 名言命令 ==========
 
 #[tauri::command]
@@ -583,7 +759,18 @@ fn main() {
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         content TEXT NOT NULL,
                         created_at DATETIME
-                    );"
+                    );
+                    CREATE TABLE IF NOT EXISTS diaries (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        date TEXT UNIQUE NOT NULL,
+                        content TEXT DEFAULT '',
+                        mood TEXT DEFAULT 'calm',
+                        weather TEXT DEFAULT 'sunny',
+                        is_private INTEGER DEFAULT 0,
+                        created_at DATETIME,
+                        updated_at DATETIME
+                    );
+                    CREATE INDEX IF NOT EXISTS idx_diaries_date ON diaries(date);"
                 ).expect("Failed to init database");
                 
                 // 插入默认名言（如果表为空）
@@ -630,6 +817,11 @@ fn main() {
             create_motto,
             update_motto,
             delete_motto,
+            get_diaries,
+            get_diary,
+            create_diary,
+            update_diary,
+            delete_diary,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

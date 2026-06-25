@@ -44,10 +44,10 @@
 
       <!-- 主要内容区域 -->
       <div class="main-content">
-        <!-- 左侧：待办事项 -->
+        <!-- 左侧：征服清单 -->
         <div class="content-panel">
           <div class="panel-header">
-            <div class="panel-title">待办事项</div>
+            <div class="panel-title">征服清单</div>
             <button class="panel-link" @click="$router.push({ name: 'todo' })">查看全部</button>
           </div>
           <div class="panel-body" v-if="pendingTodos.length > 0">
