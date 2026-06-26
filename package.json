@@ -1,6 +1,6 @@
 {
   "name": "gnothi",
-  "version": "1.0.0",
+  "version": "0.2.4",
   "description": "Gnothi - 知识管理与日常记录应用",
   "type": "module",
   "scripts": {

@@ -37,11 +37,22 @@
           <!-- 朝花夕拾列表 -->
           <div class="diary-list">
             <div class="list-header">
-              <span class="list-title">最近朝花夕拾</span>
+              <div class="list-search">
+                <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+                <input 
+                  type="text" 
+                  v-model="searchQuery" 
+                  placeholder="搜索..." 
+                  class="search-input"
+                />
+              </div>
               <div class="list-actions">
-                <button
-                  class="btn-icon"
-                  :class="{ active: showPrivate }"
+                <button 
+                  class="btn-icon" 
+                  :class="{ active: showPrivate }" 
                   @click="toggleShowPrivate"
                   :title="showPrivate ? '隐藏私密朝花夕拾' : '显示私密朝花夕拾'"
                 >
@@ -55,12 +66,12 @@
                     <line v-if="!showPrivate" x1="1" y1="1" x2="23" y2="23" />
                   </svg>
                 </button>
-                <span class="list-count">{{ diaries.length }}篇</span>
+                <span class="list-count">{{ filteredDiaries.length }}篇</span>
               </div>
             </div>
             <div class="list-content">
               <div
-                v-for="diary in diaries"
+                v-for="diary in filteredDiaries"
                 :key="diary.id"
                 class="diary-item"
                 :class="{ active: diary.date === selectedDate }"
@@ -292,6 +303,7 @@ const showEditor = ref(false)
 const editingDiary = ref(null)
 const showPrivate = ref(false)
 const isEditing = ref(false)
+const searchQuery = ref('')
 
 const moods = [
   { value: 'happy', emoji: '😊', label: '开心' },
@@ -357,6 +369,18 @@ const calendarDays = computed(() => {
 
 const diaryDatesSet = computed(() => {
   return new Set(diaries.value.map((d) => d.date))
+})
+
+const filteredDiaries = computed(() => {
+  if (!searchQuery.value.trim()) return diaries.value
+  const query = searchQuery.value.toLowerCase()
+  return diaries.value.filter(d => {
+    const content = (d.content || '').toLowerCase()
+    const date = (d.date || '').toLowerCase()
+    const mood = getMoodLabel(d.mood).toLowerCase()
+    const weather = getWeatherLabel(d.weather).toLowerCase()
+    return content.includes(query) || date.includes(query) || mood.includes(query) || weather.includes(query)
+  })
 })
 
 const selectedDiary = computed(() => {
@@ -620,7 +644,7 @@ onMounted(() => {
 
 /* 左侧边栏 */
 .diary-sidebar {
-  width: 260px;
+  width: 25%;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -628,10 +652,12 @@ onMounted(() => {
   height: 100%;
 }
 
+.diary-sidebar :deep(.calendar) {
+  width: 100%;
+}
+
 /* 朝花夕拾列表 */
 .diary-list {
-  width: 260px;
-  flex-shrink: 0;
   flex: 1;
   background: var(--bg-surface);
   border: 1px solid var(--border);
@@ -642,22 +668,57 @@ onMounted(() => {
 }
 
 .list-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   padding: 12px 16px;
   border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: space-between;
 }
 
-.list-title {
-  font-weight: 600;
-  font-size: 13px;
+.list-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: border-color 0.15s;
+  /* width: 180px; */
+  flex-shrink: 0;
+}
+
+.list-search:focus-within {
+  border-color: var(--accent);
+}
+
+.search-icon {
+  width: 14px;
+  height: 14px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
   color: var(--text);
+  font-size: 12px;
+  outline: none;
+  padding: 2px;
+}
+
+.search-input::placeholder {
+  color: var(--text-muted);
 }
 
 .list-actions {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px;
 }
 
