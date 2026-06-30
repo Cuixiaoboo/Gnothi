@@ -90,7 +90,7 @@ function nextMonth() {
 
 <style scoped>
 .calendar {
-  width: 260px;
+  width: 25%;
   flex-shrink: 0;
   background: var(--bg-surface);
   border: 1px solid var(--border);
